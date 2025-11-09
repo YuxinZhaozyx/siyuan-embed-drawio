@@ -15,10 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Install apt packages
-      - name: Install apt packages
-        run: apt install -y curl unzip
-
       # Install Node.js
       - name: Install Node.js
         uses: actions/setup-node@v3
