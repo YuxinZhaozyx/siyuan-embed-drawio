@@ -1,0 +1,51 @@
+<p align="center">
+<img alt="drawio" src="./icon.png" width="160px">
+<br>
+
+<p align="center">
+    <strong>思源插件「嵌入式系列」</strong>
+    <br>
+    使用draw.io在思源笔记中直接绘制高质量矢量图。
+    <br>
+    无需外部依赖 · 自由编辑 · 自由分享
+</p>
+
+<p align="center">
+    <a href="https://github.com/YuxinZhaozyx/siyuan-embed-drawio/blob/main/README_zh_CN.md">中文</a> | <a href="https://github.com/YuxinZhaozyx/siyuan-embed-drawio/blob/main/README.md">English</a>
+</p>
+
+---
+
+## 嵌入式系列
+
+本插件为第三个「嵌入式系列」插件，旨在为思源笔记提供更加完善且自由的draw.io使用体验。
+
+**嵌入式系列插件的宗旨**：仅作为思源笔记的辅助编辑插件，将所有信息嵌入思源笔记和markdown所支持的数据格式中，使得插件所创造的所有内容在脱离插件甚至脱离思源笔记（导出为markdown/分享到第三方平台）后仍然可以正常显示。
+
+## 使用效果
+
+![image.png](https://b3logfile.com/file/2025/11/image-r5KMPJt.png)
+
+## 功能
+
+- [x] draw.io图像以SVG格式存储
+- [x] draw.io图像可编辑
+- [x] 支持移动端
+- [x] 图像支持暗黑模式
+
+> 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)
+
+## 使用指南
+
+**创建draw.io图像：** 在编辑器中输入 `/drawio` 命令即可创建新draw.io图像。
+
+**编辑draw.io图像：** 点击图像右上角的菜单按钮，当图像被识别为合法的draw.io图像时，菜单中会显示 `编辑draw.io` 的选项，点击即可打开编辑窗口。
+
+**从其他来源迁移：** 只需要在任意draw.io平台导出SVG图像时勾选 `包含绘图副本` 选项，再把SVG图像拖入思源笔记中即可。
+
+## 更新日志
+
++ v0.1.0
+    + 新增功能：draw.io图像以SVG格式存储
+    + 新增功能：draw.io图像可编辑
+
