@@ -183,7 +183,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/drawio/index.html?mode=trello&proto=json&embed=1&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
