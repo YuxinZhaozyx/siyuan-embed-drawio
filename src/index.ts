@@ -183,7 +183,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile?"&ui=min":""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -231,6 +231,11 @@ export default class DrawioPlugin extends Plugin {
       if (message.format == 'svg') {
         const base64String = message.data.split(';base64,').pop();
         imageInfo.data = base64ToUnicode(base64String);
+
+        // 解决CSS5的light-dark样式在部分浏览器上无效的问题
+        const regex = /light-dark\s*\(\s*([^,)]+?)\s*,[^)]*?\)/gi;
+        imageInfo.data = imageInfo.data.replace(regex, '$1');
+
         this.updateDrawioImage(imageInfo, () => {
           postMessage({
             action: 'status', 

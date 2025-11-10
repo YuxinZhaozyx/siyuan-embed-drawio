@@ -48,6 +48,9 @@ Simply export your diagram as an SVG from any draw.io platform with the "Include
 
 ## Changelog
 
++ v0.1.3
+    + Optimize: theme on mobile devices
+    + Fix: avoid CSS5 ligh-dark style rendering fail in some browsers
 + v0.1.2
     + Fix: Ctrl+Z on draw.io editor cause undo in SiYuan editor
 + v0.1.1
