@@ -132,7 +132,7 @@ export default class DrawioPlugin extends Plugin {
   }
 
   public async getDrawioImage(imageURL: string): Promise<string> {
-    const response = await fetch(imageURL);
+    const response = await fetch(imageURL, { cache: 'reload' });
     if (!response.ok) return "";
     const svgContent = await response.text();
     return svgContent;
@@ -242,9 +242,10 @@ export default class DrawioPlugin extends Plugin {
             messageKey: 'allChangesSaved',
             modified: false
           });
-          const timestamp = Date.now();
-          document.querySelectorAll(`img[data-src='${imageInfo.imageURL}']`).forEach(imageElement => {
-            (imageElement as HTMLImageElement).src = imageInfo.imageURL + "?t=" + timestamp; // 重载图片，加时间戳以避免浏览器缓存图片
+          fetch(imageInfo.imageURL, { cache: 'reload' }).then(() => {
+            document.querySelectorAll(`img[data-src='${imageInfo.imageURL}']`).forEach(imageElement => {
+              (imageElement as HTMLImageElement).src = imageInfo.imageURL;
+            });
           });
         });
       }
