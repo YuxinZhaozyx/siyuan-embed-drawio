@@ -233,7 +233,7 @@ export default class DrawioPlugin extends Plugin {
         imageInfo.data = base64ToUnicode(base64String);
 
         // 解决CSS5的light-dark样式在部分浏览器上无效的问题
-        const regex = /light-dark\s*\(\s*([^,)]+?)\s*,[^)]*?\)/gi;
+        const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
         imageInfo.data = imageInfo.data.replace(regex, '$1');
 
         this.updateDrawioImage(imageInfo, () => {

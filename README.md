@@ -51,7 +51,9 @@ Click the menu button in the top-right corner of the image. If the block is reco
 
 ## Changelog
 
-- v0.1.4
++ v0.1.5
+    + Fix: avoid CSS5 ligh-dark style rendering fail in some browsers
++ v0.1.4
     + update docs
 + v0.1.3
     + Optimize: theme on mobile devices
