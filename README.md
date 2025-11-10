@@ -48,6 +48,8 @@ Simply export your diagram as an SVG from any draw.io platform with the "Include
 
 ## Changelog
 
++ v0.1.2
+    + Fix: Ctrl+Z on draw.io editor cause undo in SiYuan editor
 + v0.1.1
     + Optimize: i18n
 + v0.1.0

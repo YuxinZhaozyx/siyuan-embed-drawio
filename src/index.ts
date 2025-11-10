@@ -172,7 +172,7 @@ export default class DrawioPlugin extends Plugin {
 
   private globalKeyDownHandler = (event: KeyboardEvent) => {
     // 如果是在代码编辑器里使用快捷键，则阻止冒泡 https://github.com/YuxinZhaozyx/siyuan-embed-tikz/issues/1
-    if (document.activeElement.closest(".b3-dialog--open .tikz-edit-dialog")) {
+    if (document.activeElement.closest(".b3-dialog--open .drawio-edit-dialog")) {
       event.stopPropagation();
     }
   };
@@ -203,6 +203,7 @@ export default class DrawioPlugin extends Plugin {
     });
 
     const iframe = dialog.element.querySelector("iframe");
+    iframe.focus();
 
     const postMessage = (message: any) => {
       if (!iframe.contentWindow) return;
