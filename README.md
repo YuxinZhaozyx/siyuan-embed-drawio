@@ -29,7 +29,7 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 - [x] Support for mobile devices
 - [x] Support dark mode
 
-> If you have additional feature requests or suggestions, feel free to [open an issue on GitHub](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues).
+> If you have additional feature requests or suggestions, feel free to [open an issue on GitHub](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues) or [post in the SiYuan community](https://ld246.com/article/1762744532030) to request support for additional packages.
 
 ## Effects
 
@@ -48,6 +48,8 @@ Simply export your diagram as an SVG from any draw.io platform with the "Include
 
 ## Changelog
 
++ v0.1.1
+    + Optimize: i18n
 + v0.1.0
     + Feature: save draw.io image as SVG format
     + Feature: edit draw.io image

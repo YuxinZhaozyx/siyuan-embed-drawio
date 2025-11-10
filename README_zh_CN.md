@@ -33,7 +33,7 @@
 - [x] 支持移动端
 - [x] 图像支持暗黑模式
 
-> 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)
+> 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)或[在思源笔记社区中发帖](https://ld246.com/article/1762744532030)
 
 ## 使用指南
 
@@ -45,6 +45,8 @@
 
 ## 更新日志
 
++ v0.1.1
+    + 优化：i18n
 + v0.1.0
     + 新增功能：draw.io图像以SVG格式存储
     + 新增功能：draw.io图像可编辑
