@@ -24,8 +24,10 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 
 ## Features
 
+- [x] Offline usage (no internet required)
 - [x] Save draw.io image as SVG format
 - [x] Edit draw.io image
+- [x] Support export to PDF
 - [x] Support for mobile devices
 - [x] Support dark mode
 
@@ -44,10 +46,13 @@ Type `/drawio` in the editor to create a new draw.io image.
 Click the menu button in the top-right corner of the image. If the block is recognized as a valid draw.io image, an `Edit draw.io` option will appear. Click it to open the editor.
 
 **Migrating from other sources:**
-Simply export your diagram as an SVG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG file into SiYuan.
++ Method 1: Simply export your diagram as an SVG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG file into SiYuan.
++ Method 2: Copy all content from any draw.io platform, type `/drawio` in the editor, and paste the copied content into the pop-up draw.io window.
 
 ## Changelog
 
+- v0.1.4
+    + update docs
 + v0.1.3
     + Optimize: theme on mobile devices
     + Fix: avoid CSS5 ligh-dark style rendering fail in some browsers
