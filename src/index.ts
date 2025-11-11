@@ -36,11 +36,22 @@ export default class DrawioPlugin extends Plugin {
   public platform: SyFrontendTypes
   public readonly version = version
 
+  private _mutationObserver;
   private _openMenuImageHandler;
   private _globalKeyDownHandler;
 
   async onload() {
     this.initMetaInfo();
+
+    this._mutationObserver = this.setAddImageBlockMuatationObserver(document.body, (blockElement: HTMLElement) => {
+      const imageElement = blockElement.querySelector("img") as HTMLImageElement;
+      if (imageElement) {
+        const imageURL = imageElement.getAttribute("data-src");
+        this.getDrawioImageInfo(imageURL).then((imageInfo) => {
+          this.updateAttrLabel(imageInfo, blockElement);
+        });
+      }
+    });
 
     this.protyleSlash = [{
       filter: ["drawio", "draw.io"],
@@ -61,6 +72,7 @@ export default class DrawioPlugin extends Plugin {
   }
 
   onunload() {
+    if (this._mutationObserver) this._mutationObserver.disconnect();
     if (this._openMenuImageHandler) this.eventBus.off("open-menu-image", this._openMenuImageHandler);
     if (this._globalKeyDownHandler) document.documentElement.removeEventListener("keydown", this._globalKeyDownHandler);
   }
@@ -83,6 +95,38 @@ export default class DrawioPlugin extends Plugin {
     } catch (err) {
       this.isElectron = false;
     }
+  }
+
+  public setAddImageBlockMuatationObserver(element: HTMLElement, callback: (blockElement: HTMLElement) => void): MutationObserver {
+    const mutationObserver = new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const addedElement = node as HTMLElement;
+              if (addedElement.matches("div[data-type='NodeParagraph']")) {
+                if (addedElement.querySelector(".img[data-type='img'] img")) {
+                  callback(addedElement as HTMLElement);
+                }
+              } else {
+                addedElement.querySelectorAll("div[data-type='NodeParagraph']").forEach((blockElement: HTMLElement) => {
+                  if (blockElement.querySelector(".img[data-type='img'] img")) {
+                    callback(blockElement);
+                  }
+                })
+              }
+            }
+          });
+        }
+      }
+    });
+
+    mutationObserver.observe(element, {
+      childList: true,
+      subtree: true
+    });
+
+    return mutationObserver;
   }
 
   public async getDrawioImageInfo(imageURL: string): Promise<DrawioImageInfo | null> {
@@ -149,6 +193,25 @@ export default class DrawioPlugin extends Plugin {
     formData.append("file", file);
     formData.append("isDir", "false");
     fetchPost("/api/file/putFile", formData, callback);
+  }
+
+  public updateAttrLabel(imageInfo: DrawioImageInfo, blockElement: HTMLElement) {
+    if (!imageInfo) return;
+
+    const attrElement = blockElement.querySelector(".protyle-attr") as HTMLDivElement;
+    if (attrElement) {
+      const pageCount = (imageInfo.data.match(/name=&quot;/g) || []).length;
+      const labelHTML = `<span>draw.io${pageCount > 1 ? `:${pageCount}` : ''}</span>`;
+      let labelElement = attrElement.querySelector(".label--embed-drawio") as HTMLDivElement;
+      if (labelElement) {
+        labelElement.innerHTML = labelHTML;
+      } else {
+        labelElement = document.createElement("div");
+        labelElement.classList.add("label--embed-drawio");
+        labelElement.innerHTML = labelHTML;
+        attrElement.prepend(labelElement);
+      }
+    }
   }
 
   private openMenuImageHandler({ detail }) {
@@ -245,6 +308,10 @@ export default class DrawioPlugin extends Plugin {
           fetch(imageInfo.imageURL, { cache: 'reload' }).then(() => {
             document.querySelectorAll(`img[data-src='${imageInfo.imageURL}']`).forEach(imageElement => {
               (imageElement as HTMLImageElement).src = imageInfo.imageURL;
+              const blockElement = imageElement.closest("div[data-type='NodeParagraph']") as HTMLElement;
+              if (blockElement) {
+                this.updateAttrLabel(imageInfo, blockElement);
+              }
             });
           });
         });

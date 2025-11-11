@@ -51,6 +51,8 @@ Click the menu button in the top-right corner of the image. If the block is reco
 
 ## Changelog
 
++ v0.2.0
+    + Feature: show draw.io image label and page counts
 + v0.1.6
     + Fix: load cache image mistakely
 + v0.1.5
