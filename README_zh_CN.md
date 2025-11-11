@@ -24,7 +24,13 @@
 
 ## 使用效果
 
+编辑：
+
 ![image.png](https://b3logfile.com/file/2025/11/image-r5KMPJt.png)
+
+灯箱：
+
+![image.png](https://b3logfile.com/file/2025/11/image-HcmEJ0P.png)
 
 ## 功能
 
@@ -34,6 +40,7 @@
 - [x] 支持导出PDF
 - [x] 支持移动端编辑
 - [x] 图像支持暗黑模式
+- [x] 灯箱
 
 > 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)或[在思源笔记社区中发帖](https://ld246.com/article/1762744532030)
 
@@ -41,15 +48,27 @@
 
 **创建draw.io图像：** 在编辑器中输入 `/drawio` 命令即可创建新draw.io图像。
 
-**编辑draw.io图像：** 点击图像右上角的菜单按钮，当图像被识别为合法的draw.io图像时，菜单中会显示 `编辑draw.io` 的选项，点击即可打开编辑窗口。
+**编辑draw.io图像：** 右键/点击图像右上角的菜单按钮，当图像被识别为合法的draw.io图像时，菜单中会显示 `编辑draw.io` 的选项，点击即可打开编辑窗口。
+
+**查看draw.io灯箱：** 右键/点击图像右上角的菜单按钮，当图像被识别为合法的draw.io图像时，菜单中会显示 `draw.io 灯箱` 的选项，点击即可打开灯箱窗口。
 
 **从其他来源迁移：** 
 
 + 方案1：只需要在任意draw.io平台导出SVG图像时勾选 `包含绘图副本` 选项，再把SVG图像拖入思源笔记中即可，不用担心以后没法再迁移，这个SVG图像也是可以导入到任意draw.io再次编辑的。
 + 方案2：在任意draw.io平台内复制全部内容，在思源笔记中输入 `/drawio` 命令创建新draw.io图像，然后将复制的内容粘贴进弹出的draw.io窗口中即可。
 
+**移除draw.io标签:** 添加下列代码片段：
+
+```css
+.protyle-attr .label--embed-drawio {
+  display: none !important;
+}
+```
+
 ## 更新日志
 
++ v0.2.1
+    + 新增功能：灯箱
 + v0.2.0
     + 新增功能：draw.io图像右上侧显示标签和页数
 + v0.1.6

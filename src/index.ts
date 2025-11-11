@@ -228,7 +228,16 @@ export default class DrawioPlugin extends Plugin {
           click: () => {
             this.openEditDialog(imageInfo);
           }
-        })
+        });
+        window.siyuan.menus.menu.addItem({
+          id: "drawio-lightbox",
+          icon: 'iconImage',
+          label: `${this.i18n.drawioLightbox}`,
+          index: 1,
+          click: () => {
+            this.openLightboxDialog(imageInfo);
+          }
+        });
       }
     })
   }
@@ -358,4 +367,73 @@ export default class DrawioPlugin extends Plugin {
     });
   }
 
+  public openLightboxDialog(imageInfo: DrawioImageInfo) {
+    const lightboxDialogHTML = `
+<div class="drawio-lightbox-dialog">
+    <div class="edit-dialog-header resize__move"></div>
+    <div class="edit-dialog-container">
+        <div class="edit-dialog-editor">
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile?"&ui=min":""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1"></iframe>
+        </div>
+        <div class="fn__hr--b"></div>
+    </div>
+</div>
+    `;
+
+    const dialogDestroyCallbacks = [];
+
+    const dialog = new Dialog({
+      content: lightboxDialogHTML,
+      width: this.isMobile ? "92vw" : "90vw",
+      height: "80vh",
+      hideCloseIcon: this.isMobile,
+      destroyCallback: () => {
+        dialogDestroyCallbacks.forEach(callback => callback());
+      },
+    });
+
+    const iframe = dialog.element.querySelector("iframe");
+    iframe.focus();
+
+    const postMessage = (message: any) => {
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.postMessage(JSON.stringify(message), '*');
+    };
+
+    const onInit = (message: any) => {
+      postMessage({
+        action: "load",
+        autosave: 0,
+        modified: 'unsavedChanges',
+        title: this.isMobile ? '' : imageInfo.imageURL,
+        xml: imageInfo.data,
+      });
+    }
+
+    const messageEventHandler = (event) => {
+      if (event.data && event.data.length > 0)
+      {
+        try
+        {
+          var message = JSON.parse(event.data);
+          if (message != null)
+          {
+            // console.log(message.event);
+            if (message.event == "init") {
+              onInit(message);
+            }
+          }
+        }
+        catch (err)
+        {
+          console.error(err);
+        }
+      }
+    };
+
+    window.addEventListener("message", messageEventHandler);
+    dialogDestroyCallbacks.push(() => {
+      window.removeEventListener("message", messageEventHandler);
+    });
+  }
 }
