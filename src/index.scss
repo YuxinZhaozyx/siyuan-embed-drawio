@@ -39,3 +39,7 @@
 html[data-theme-mode="dark"] img[data-src^="assets/drawio-"][data-src$=".svg"] {
     filter: invert(0.8) brightness(1.2);
 }
+
+div[data-type='NodeParagraph']:not(:hover) .protyle-attr .label--embed-drawio:not(.label--embed-drawio--always) {
+  display: none !important;
+}

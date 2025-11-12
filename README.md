@@ -63,18 +63,10 @@ Click the menu button in the top-right corner of the image. If the block is reco
 + Method 1: Simply export your diagram as an SVG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG file into SiYuan.
 + Method 2: Copy all content from any draw.io platform, type `/drawio` in the editor, and paste the copied content into the pop-up draw.io window.
 
-**Disable draw.io label:**
-
-Add CSS Snippet:
-
-```css
-.protyle-attr .label--embed-drawio {
-  display: none !important;
-}
-```
-
 ## Changelog
 
++ v0.2.2
+    + Optimize: add tag configuration, now you can set the display mode of tags in the configuration
 + v0.2.1
     + Feature: lightbox
 + v0.2.0

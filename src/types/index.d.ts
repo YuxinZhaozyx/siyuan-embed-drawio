@@ -152,3 +152,11 @@ interface DrawioImageInfo {
   imageURL: string;
   data: string;
 }
+
+interface SettingItem {
+    title?: string;
+    description?: string;
+    direction?: "row" | "column";
+    actionElement?: HTMLElement;
+    createActionElement?: () => HTMLElement;
+}

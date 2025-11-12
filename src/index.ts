@@ -7,7 +7,7 @@ import {
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
-import { unescapeHTML, escapeHTML, base64ToUnicode } from "./utils";
+import { base64ToUnicode, HTMLToElement } from "./utils";
 import defaultImageContent from "@/../default.svg?raw";
 
 let PluginInfo = {
@@ -21,6 +21,8 @@ try {
 const {
   version,
 } = PluginInfo
+
+const STORAGE_NAME = "config.json";
 
 export default class DrawioPlugin extends Plugin {
   // Run as mobile
@@ -40,14 +42,19 @@ export default class DrawioPlugin extends Plugin {
   private _openMenuImageHandler;
   private _globalKeyDownHandler;
 
+  private settingItems: SettingItem[];
+
   async onload() {
     this.initMetaInfo();
+    this.initSetting();
 
     this._mutationObserver = this.setAddImageBlockMuatationObserver(document.body, (blockElement: HTMLElement) => {
+      if (this.data[STORAGE_NAME].labelDisplay === "noLabel") return;
+
       const imageElement = blockElement.querySelector("img") as HTMLImageElement;
       if (imageElement) {
         const imageURL = imageElement.getAttribute("data-src");
-        this.getDrawioImageInfo(imageURL).then((imageInfo) => {
+        this.getDrawioImageInfo(imageURL, false).then((imageInfo) => {
           this.updateAttrLabel(imageInfo, blockElement);
         });
       }
@@ -77,8 +84,105 @@ export default class DrawioPlugin extends Plugin {
     if (this._globalKeyDownHandler) document.documentElement.removeEventListener("keydown", this._globalKeyDownHandler);
   }
 
-  // openSetting() {
-  // }
+  openSetting() {
+    const dialogHTML = `
+<div class="b3-dialog__content"></div>
+<div class="b3-dialog__action">
+  <button class="b3-button b3-button--cancel" data-type="cancel">${window.siyuan.languages.cancel}</button>
+  <div class="fn__space"></div>
+  <button class="b3-button b3-button--text" data-type="confirm">${window.siyuan.languages.save}</button>
+</div>
+    `;
+
+    const dialog = new Dialog({
+      title: this.displayName,
+      content: dialogHTML,
+      width: this.isMobile ? "92vw" : "768px",
+      height: "80vh",
+      hideCloseIcon: this.isMobile,
+    });
+
+    // 配置的处理拷贝自思源源码
+    const contentElement = dialog.element.querySelector(".b3-dialog__content");
+    this.settingItems.forEach((item) => {
+      let html = "";
+      let actionElement = item.actionElement;
+      if (!item.actionElement && item.createActionElement) {
+        actionElement = item.createActionElement();
+      }
+      const tagName = actionElement?.classList.contains("b3-switch") ? "label" : "div";
+      if (typeof item.direction === "undefined") {
+        item.direction = (!actionElement || "TEXTAREA" === actionElement.tagName) ? "row" : "column";
+      }
+      if (item.direction === "row") {
+        html = `<${tagName} class="b3-label">
+    <div class="fn__block">
+        ${item.title}
+        ${item.description ? `<div class="b3-label__text">${item.description}</div>` : ""}
+        <div class="fn__hr"></div>
+    </div>
+</${tagName}>`;
+      } else {
+        html = `<${tagName} class="fn__flex b3-label config__item">
+    <div class="fn__flex-1">
+        ${item.title}
+        ${item.description ? `<div class="b3-label__text">${item.description}</div>` : ""}
+    </div>
+    <span class="fn__space${actionElement ? "" : " fn__none"}"></span>
+</${tagName}>`;
+      }
+      contentElement.insertAdjacentHTML("beforeend", html);
+      if (actionElement) {
+        if (["INPUT", "TEXTAREA"].includes(actionElement.tagName)) {
+          dialog.bindInput(actionElement as HTMLInputElement, () => {
+            (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).dispatchEvent(new CustomEvent("click"));
+          });
+        }
+        if (item.direction === "row") {
+          contentElement.lastElementChild.lastElementChild.insertAdjacentElement("beforeend", actionElement);
+          actionElement.classList.add("fn__block");
+        } else {
+          actionElement.classList.remove("fn__block");
+          actionElement.classList.add("fn__flex-center", "fn__size200");
+          contentElement.lastElementChild.insertAdjacentElement("beforeend", actionElement);
+        }
+      }
+    });
+
+    (dialog.element.querySelector(".b3-dialog__action [data-type='cancel']") as HTMLElement).addEventListener("click", () => {
+      dialog.destroy();
+    });
+    (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).addEventListener("click", () => {
+      this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
+      this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
+      dialog.destroy();
+    });
+  }
+
+  private async initSetting() {
+    await this.loadData(STORAGE_NAME);
+    if (!this.data[STORAGE_NAME]) {
+      this.data[STORAGE_NAME] = {
+        labelDisplay: "showLabelOnHover",
+      };
+    }
+
+    this.settingItems = [
+      {
+        title: "标签显示",
+        direction: "column",
+        description: "图像块右上角的标签显示（修改后需刷新文档生效）",
+        createActionElement: () => {
+          const options = ["noLabel", "showLabelAlways", "showLabelOnHover"];
+          const optionsHTML = options.map(option => {
+            const isSelected = String(option) === String(this.data[STORAGE_NAME].labelDisplay);
+            return `<option value="${option}"${isSelected ? " selected" : ""}>${this.i18n[option]}</option>`;
+          }).join("");
+          return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="labelDisplay">${optionsHTML}</select>`);
+        },
+      },
+    ];
+  }
 
   private initMetaInfo() {
     const frontEnd = getFrontend();
@@ -129,11 +233,11 @@ export default class DrawioPlugin extends Plugin {
     return mutationObserver;
   }
 
-  public async getDrawioImageInfo(imageURL: string): Promise<DrawioImageInfo | null> {
+  public async getDrawioImageInfo(imageURL: string, reload: boolean): Promise<DrawioImageInfo | null> {
     const imageURLRegex = /^assets\/.+\.svg$/;
     if (!imageURLRegex.test(imageURL)) return null;
 
-    const svgContent = await this.getDrawioImage(imageURL);
+    const svgContent = await this.getDrawioImage(imageURL, reload);
     if (!svgContent) return null;
 
     if (!svgContent.includes("mxfile")) return null;
@@ -175,8 +279,8 @@ export default class DrawioPlugin extends Plugin {
     });
   }
 
-  public async getDrawioImage(imageURL: string): Promise<string> {
-    const response = await fetch(imageURL, { cache: 'reload' });
+  public async getDrawioImage(imageURL: string, reload: boolean): Promise<string> {
+    const response = await fetch(imageURL, { cache: reload ? 'reload' : 'default' });
     if (!response.ok) return "";
     const svgContent = await response.text();
     return svgContent;
@@ -198,6 +302,8 @@ export default class DrawioPlugin extends Plugin {
   public updateAttrLabel(imageInfo: DrawioImageInfo, blockElement: HTMLElement) {
     if (!imageInfo) return;
 
+    if (this.data[STORAGE_NAME].labelDisplay === "noLabel") return;
+
     const attrElement = blockElement.querySelector(".protyle-attr") as HTMLDivElement;
     if (attrElement) {
       const pageCount = (imageInfo.data.match(/name=&quot;/g) || []).length;
@@ -208,6 +314,9 @@ export default class DrawioPlugin extends Plugin {
       } else {
         labelElement = document.createElement("div");
         labelElement.classList.add("label--embed-drawio");
+        if (this.data[STORAGE_NAME].labelDisplay === "showLabelAlways") {
+          labelElement.classList.add("label--embed-drawio--always");
+        }
         labelElement.innerHTML = labelHTML;
         attrElement.prepend(labelElement);
       }
@@ -218,7 +327,7 @@ export default class DrawioPlugin extends Plugin {
     const selectedElement = detail.element;
     const imageElement = selectedElement.querySelector("img") as HTMLImageElement;
     const imageURL = imageElement.dataset.src;
-    this.getDrawioImageInfo(imageURL).then((imageInfo: DrawioImageInfo) => {
+    this.getDrawioImageInfo(imageURL, true).then((imageInfo: DrawioImageInfo) => {
       if (imageInfo) {
         window.siyuan.menus.menu.addItem({
           id: "edit-drawio",
@@ -255,7 +364,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile?"&ui=min":""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -294,8 +403,8 @@ export default class DrawioPlugin extends Plugin {
 
     const onSave = (message: any) => {
       postMessage({
-        action: 'export', 
-        format:'xmlsvg'
+        action: 'export',
+        format: 'xmlsvg'
       });
     }
 
@@ -310,7 +419,7 @@ export default class DrawioPlugin extends Plugin {
 
         this.updateDrawioImage(imageInfo, () => {
           postMessage({
-            action: 'status', 
+            action: 'status',
             messageKey: 'allChangesSaved',
             modified: false
           });
@@ -332,13 +441,10 @@ export default class DrawioPlugin extends Plugin {
     }
 
     const messageEventHandler = (event) => {
-      if (event.data && event.data.length > 0)
-      {
-        try
-        {
+      if (event.data && event.data.length > 0) {
+        try {
           var message = JSON.parse(event.data);
-          if (message != null)
-          {
+          if (message != null) {
             // console.log(message.event);
             if (message.event == "init") {
               onInit(message);
@@ -354,8 +460,7 @@ export default class DrawioPlugin extends Plugin {
             }
           }
         }
-        catch (err)
-        {
+        catch (err) {
           console.error(err);
         }
       }
@@ -373,7 +478,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile?"&ui=min":""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -411,21 +516,17 @@ export default class DrawioPlugin extends Plugin {
     }
 
     const messageEventHandler = (event) => {
-      if (event.data && event.data.length > 0)
-      {
-        try
-        {
+      if (event.data && event.data.length > 0) {
+        try {
           var message = JSON.parse(event.data);
-          if (message != null)
-          {
+          if (message != null) {
             // console.log(message.event);
             if (message.event == "init") {
               onInit(message);
             }
           }
         }
-        catch (err)
-        {
+        catch (err) {
           console.error(err);
         }
       }

@@ -1,4 +1,9 @@
 {
   "editDrawio": "Edit draw.io",
-  "drawioLightbox": "draw.io Lightbox"
+  "drawioLightbox": "draw.io Lightbox",
+  "labelDisplay": "Label Display",
+  "labelDisplayDescription": "Label display in image block top right corner (Changes require refresh of document)",
+  "noLabel": "No Label",
+  "showLabelAlways": "Show Label Always",
+  "showLabelOnHover": "Show Label On Hover"
 }
