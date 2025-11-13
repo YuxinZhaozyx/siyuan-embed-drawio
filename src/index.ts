@@ -401,6 +401,48 @@ export default class DrawioPlugin extends Plugin {
       });
     }
 
+    let isFullscreen = false;
+    let dialogContainerStyle = {
+      width: "100vw",
+      height: "100vh",
+      maxWidth: "unset",
+      maxHeight: "unset",
+      top: "auto",
+      left: "auto",
+    };
+    const onLoad = (message: any) => {
+      const fullscreenButton = iframe.contentDocument.querySelector(".geToolbarContainer .geToolbarEnd .geButton");
+      if (fullscreenButton) {
+        fullscreenButton.addEventListener('click', () => {
+          const dialogContainerElement = dialog.element.querySelector('.b3-dialog__container') as HTMLElement;
+          if (dialogContainerElement) {
+            isFullscreen = !isFullscreen;
+            if (isFullscreen) {
+              dialogContainerStyle.width = dialogContainerElement.style.width;
+              dialogContainerStyle.height = dialogContainerElement.style.height;
+              dialogContainerStyle.maxWidth = dialogContainerElement.style.maxWidth;
+              dialogContainerStyle.maxHeight = dialogContainerElement.style.maxHeight;
+              dialogContainerStyle.top = dialogContainerElement.style.top;
+              dialogContainerStyle.left = dialogContainerElement.style.left;
+              dialogContainerElement.style.width = "100vw";
+              dialogContainerElement.style.height = "100vh";
+              dialogContainerElement.style.maxWidth = "unset";
+              dialogContainerElement.style.maxHeight = "unset";
+              dialogContainerElement.style.top = "0";
+              dialogContainerElement.style.left = "0";
+            } else {
+              dialogContainerElement.style.width = dialogContainerStyle.width;
+              dialogContainerElement.style.height = dialogContainerStyle.height;
+              dialogContainerElement.style.maxWidth = dialogContainerStyle.maxWidth;
+              dialogContainerElement.style.maxHeight = dialogContainerStyle.maxHeight;
+              dialogContainerElement.style.top = dialogContainerStyle.top;
+              dialogContainerElement.style.left = dialogContainerStyle.left;
+            }
+          }
+        });
+      }
+    }
+
     const onSave = (message: any) => {
       postMessage({
         action: 'export',
@@ -448,6 +490,9 @@ export default class DrawioPlugin extends Plugin {
             // console.log(message.event);
             if (message.event == "init") {
               onInit(message);
+            }
+            else if (message.event == "load") {
+              onLoad(message);
             }
             else if (message.event == "save" || message.event == "autosave") {
               onSave(message);

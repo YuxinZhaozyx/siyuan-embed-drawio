@@ -34,7 +34,7 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 
 > If you have additional feature requests or suggestions, feel free to [open an issue on GitHub](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues) or [post in the SiYuan community](https://ld246.com/article/1762744532030) to request support for additional packages.
 
-## Effects
+## Effects on PC
 
 Edit:
 
@@ -43,6 +43,11 @@ Edit:
 Lightbox:
 
 ![image.png](https://b3logfile.com/file/2025/11/image-HcmEJ0P.png)
+
+
+## Effects on Mobile Phone
+
+![image.png](https://b3logfile.com/file/2025/11/image-eTV8ar9.png)
 
 ## Usage Guide
 
@@ -63,8 +68,14 @@ Click the menu button in the top-right corner of the image. If the block is reco
 + Method 1: Simply export your diagram as an SVG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG file into SiYuan.
 + Method 2: Copy all content from any draw.io platform, type `/drawio` in the editor, and paste the copied content into the pop-up draw.io window.
 
+**draw.io image block label:**
+
+The label of a draw.io image block can be configured in the plugin settings.
+
 ## Changelog
 
++ v0.3.0
+    + Feature: edit dialog support fullscreen mode [#2](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues/2)
 + v0.2.2
     + Optimize: add tag configuration, now you can set the display mode of tags in the configuration
 + v0.2.1
