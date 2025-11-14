@@ -65,6 +65,8 @@
 
 ## 更新日志
 
++ v0.3.1
+    + 优化：编辑窗口增加额外全屏按钮 [#4](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues/4)
 + v0.3.0
     + 新增功能：编辑窗口支持全屏 [#2](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues/2)
 + v0.2.2
