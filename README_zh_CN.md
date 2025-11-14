@@ -65,6 +65,8 @@
 
 ## 更新日志
 
++ v0.3.2
+    + 修改思源版本要求：>= 3.0.0
 + v0.3.1
     + 优化：编辑窗口增加额外全屏按钮 [#4](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues/4)
 + v0.3.0

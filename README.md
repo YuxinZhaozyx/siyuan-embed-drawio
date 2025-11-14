@@ -74,6 +74,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.3.2
+    + change SiYuan version requirement: >= 3.0.0
 + v0.3.1
     + Optimize: add fullscreen button for edit dialog [#4](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues/4)
 + v0.3.0
