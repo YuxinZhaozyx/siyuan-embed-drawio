@@ -74,6 +74,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.3.3
+    + Optimize: reload editors after configrating plugin
 + v0.3.2
     + change SiYuan version requirement: >= 3.0.0
 + v0.3.1

@@ -4,6 +4,7 @@ import {
   getFrontend,
   fetchPost,
   IWebSocketData,
+  getAllEditor,
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
@@ -76,12 +77,19 @@ export default class DrawioPlugin extends Plugin {
 
     this._globalKeyDownHandler = this.globalKeyDownHandler.bind(this);
     document.documentElement.addEventListener("keydown", this._globalKeyDownHandler);
+
+    this.reloadAllEditor();
   }
 
   onunload() {
     if (this._mutationObserver) this._mutationObserver.disconnect();
     if (this._openMenuImageHandler) this.eventBus.off("open-menu-image", this._openMenuImageHandler);
     if (this._globalKeyDownHandler) document.documentElement.removeEventListener("keydown", this._globalKeyDownHandler);
+    this.reloadAllEditor();
+  }
+
+  uninstall() {
+    this.removeData(STORAGE_NAME);
   }
 
   openSetting() {
@@ -155,6 +163,7 @@ export default class DrawioPlugin extends Plugin {
     (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).addEventListener("click", () => {
       this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
+      this.reloadAllEditor();
       dialog.destroy();
     });
   }
@@ -587,5 +596,9 @@ export default class DrawioPlugin extends Plugin {
     dialogDestroyCallbacks.push(() => {
       window.removeEventListener("message", messageEventHandler);
     });
+  }
+
+  public reloadAllEditor() {
+    getAllEditor().forEach((protyle) => { protyle.reload(false); });
   }
 }
