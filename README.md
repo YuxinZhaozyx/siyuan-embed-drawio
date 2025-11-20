@@ -25,7 +25,7 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 ## Features
 
 - [x] Offline usage (no internet required)
-- [x] Save draw.io image as SVG format
+- [x] Save draw.io image as SVG/PNG format
 - [x] Edit draw.io image
 - [x] Support export to PDF
 - [x] Support for mobile devices
@@ -51,6 +51,10 @@ Lightbox:
 
 ## Usage Guide
 
+**Set draw.io image storage format:**
+
+In the plugin settings, modify the draw.io image storage format (only affects newly created images). You can choose SVG/PNG.
+
 **Create a draw.io Image:**
 
 Type `/drawio` in the editor to create a new draw.io image.
@@ -65,7 +69,7 @@ Click the menu button in the top-right corner of the image. If the block is reco
 
 **Migrating from other sources:**
 
-+ Method 1: Simply export your diagram as an SVG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG file into SiYuan.
++ Method 1: Simply export your diagram as an SVG/PNG from any draw.io platform with the "Include a copy of my diagram" option enabled, then drag the resulting SVG/PNG file into SiYuan.
 + Method 2: Copy all content from any draw.io platform, type `/drawio` in the editor, and paste the copied content into the pop-up draw.io window.
 
 **draw.io image block label:**
@@ -74,6 +78,10 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.4.0
+    + Feature: select SVG or PNG storage for draw.io image
+    + Feature: fullscreen edit
+    + Optimize: remove save button
 + v0.3.3
     + Optimize: reload editors after configrating plugin
 + v0.3.2

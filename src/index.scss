@@ -36,7 +36,7 @@
     }
 }
 
-html[data-theme-mode="dark"] img[data-src^="assets/drawio-"][data-src$=".svg"] {
+html[data-theme-mode="dark"] img[data-src^="assets/drawio-"] {
     filter: invert(0.8) brightness(1.2);
 }
 

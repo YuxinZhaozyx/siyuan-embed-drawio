@@ -151,6 +151,7 @@ enum SyFrontendTypes {
 interface DrawioImageInfo {
   imageURL: string;
   data: string;
+  format: "svg" | "png";
 }
 
 interface SettingItem {

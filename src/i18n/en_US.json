@@ -5,5 +5,9 @@
   "labelDisplayDescription": "Label display in image block top right corner",
   "noLabel": "No Label",
   "showLabelAlways": "Show Label Always",
-  "showLabelOnHover": "Show Label On Hover"
+  "showLabelOnHover": "Show Label On Hover",
+  "embedImageFormat": "Embed Image Format",
+  "embedImageFormatDescription": "Format of New draw.io Image",
+  "fullscreenEdit": "Fullscreen Edit",
+  "fullscreenEditDescription": "Edit draw.io in fullscreen mode"
 }

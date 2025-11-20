@@ -8,8 +8,8 @@ import {
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
-import { base64ToUnicode, HTMLToElement } from "./utils";
-import defaultImageContent from "@/../default.svg?raw";
+import { base64ToUnicode, blobToDataURL, dataURLToBlob, HTMLToElement, unicodeToBase64 } from "./utils";
+import defaultImageContent from "@/default.json";
 
 let PluginInfo = {
   version: '',
@@ -162,6 +162,8 @@ export default class DrawioPlugin extends Plugin {
     });
     (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).addEventListener("click", () => {
       this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
+      this.data[STORAGE_NAME].embedImageFormat = (dialog.element.querySelector("[data-type='embedImageFormat']") as HTMLSelectElement).value;
+      this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
       this.reloadAllEditor();
       dialog.destroy();
@@ -170,17 +172,16 @@ export default class DrawioPlugin extends Plugin {
 
   private async initSetting() {
     await this.loadData(STORAGE_NAME);
-    if (!this.data[STORAGE_NAME]) {
-      this.data[STORAGE_NAME] = {
-        labelDisplay: "showLabelOnHover",
-      };
-    }
+    if (!this.data[STORAGE_NAME]) this.data[STORAGE_NAME] = {};
+    if (typeof this.data[STORAGE_NAME].labelDisplay === 'undefined') this.data[STORAGE_NAME].labelDisplay = "showLabelOnHover";
+    if (typeof this.data[STORAGE_NAME].embedImageFormat === 'undefined') this.data[STORAGE_NAME].embedImageFormat = "svg";
+    if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
 
     this.settingItems = [
       {
-        title: "标签显示",
+        title: this.i18n.labelDisplay,
         direction: "column",
-        description: "图像块右上角的标签显示（修改后需刷新文档生效）",
+        description: this.i18n.labelDisplayDescription,
         createActionElement: () => {
           const options = ["noLabel", "showLabelAlways", "showLabelOnHover"];
           const optionsHTML = options.map(option => {
@@ -188,6 +189,29 @@ export default class DrawioPlugin extends Plugin {
             return `<option value="${option}"${isSelected ? " selected" : ""}>${this.i18n[option]}</option>`;
           }).join("");
           return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="labelDisplay">${optionsHTML}</select>`);
+        },
+      },
+      {
+        title: this.i18n.embedImageFormat,
+        direction: "column",
+        description: this.i18n.embedImageFormatDescription,
+        createActionElement: () => {
+          const options = ["svg", "png"];
+          const optionsHTML = options.map(option => {
+            const isSelected = String(option) === String(this.data[STORAGE_NAME].embedImageFormat);
+            return `<option value="${option}"${isSelected ? " selected" : ""}>${option}</option>`;
+          }).join("");
+          return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="embedImageFormat">${optionsHTML}</select>`);
+        },
+      },
+      {
+        title: this.i18n.fullscreenEdit,
+        direction: "column",
+        description: this.i18n.fullscreenEditDescription,
+        createActionElement: () => {
+          const element = HTMLToElement(`<input type="checkbox" class="b3-switch fn__flex-center" data-type="fullscreenEdit">`) as HTMLInputElement;
+          element.checked = this.data[STORAGE_NAME].fullscreenEdit;
+          return element;
         },
       },
     ];
@@ -243,36 +267,39 @@ export default class DrawioPlugin extends Plugin {
   }
 
   public async getDrawioImageInfo(imageURL: string, reload: boolean): Promise<DrawioImageInfo | null> {
-    const imageURLRegex = /^assets\/.+\.svg$/;
+    const imageURLRegex = /^assets\/.+\.(?:svg|png)$/;
     if (!imageURLRegex.test(imageURL)) return null;
 
-    const svgContent = await this.getDrawioImage(imageURL, reload);
-    if (!svgContent) return null;
+    const imageContent = await this.getDrawioImage(imageURL, reload);
+    if (!imageContent) return null;
 
-    if (!svgContent.includes("mxfile")) return null;
+    if (!base64ToUnicode(imageContent.split(',').pop()).includes("mxfile")) return null;
 
     const imageInfo: DrawioImageInfo = {
       imageURL: imageURL,
-      data: svgContent,
+      data: imageContent,
+      format: imageURL.endsWith(".svg") ? "svg" : "png",
     }
     return imageInfo;
   }
 
-  public getPlaceholderImageContent(): string {
-    let imageContent = defaultImageContent;
-    imageContent = imageContent + `\n<!-- updated="${new Date().toISOString()}" -->`;
+  public getPlaceholderImageContent(format: 'svg' | 'png'): string {
+    let imageContent = defaultImageContent[format];
     return imageContent;
   }
 
   public newDrawioImage(blockID: string, callback?: (imageInfo: DrawioImageInfo) => void) {
-    const imageName = 'drawio-image.svg';
-    const placeholderImageContent = this.getPlaceholderImageContent();
-    const blob = new Blob([placeholderImageContent], { type: 'image/svg+xml' });
-    const file = new File([blob], imageName, { type: 'image/svg+xml' });
+    const format = this.data[STORAGE_NAME].embedImageFormat;
+    const imageName = `drawio-image-${window.Lute.NewNodeID()}.${format}`;
+    const placeholderImageContent = this.getPlaceholderImageContent(format);
+    const blob = dataURLToBlob(placeholderImageContent);
+    const file = new File([blob], imageName, { type: blob.type });
     const formData = new FormData();
-    formData.append('file[]', file);
-    fetchPost('/api/asset/upload', formData, (response) => {
-      const imageURL = response.data.succMap[imageName];
+    formData.append('path', `data/assets/${imageName}`);
+    formData.append('file', file);
+    formData.append('isDir', 'false');
+    fetchPost('/api/file/putFile', formData, () => {
+      const imageURL = `assets/${imageName}`;
       fetchPost('/api/block/updateBlock', {
         id: blockID,
         data: `![](${imageURL})`,
@@ -281,6 +308,7 @@ export default class DrawioPlugin extends Plugin {
       const imageInfo: DrawioImageInfo = {
         imageURL: imageURL,
         data: placeholderImageContent,
+        format: format,
       };
       if (callback) {
         callback(imageInfo);
@@ -291,16 +319,16 @@ export default class DrawioPlugin extends Plugin {
   public async getDrawioImage(imageURL: string, reload: boolean): Promise<string> {
     const response = await fetch(imageURL, { cache: reload ? 'reload' : 'default' });
     if (!response.ok) return "";
-    const svgContent = await response.text();
-    return svgContent;
+    const blob = await response.blob();
+    return await blobToDataURL(blob);
   }
 
   public updateDrawioImage(imageInfo: DrawioImageInfo, callback?: (response: IWebSocketData) => void) {
     if (!imageInfo.data) {
-      imageInfo.data = this.getPlaceholderImageContent();
+      imageInfo.data = this.getPlaceholderImageContent(imageInfo.format);
     }
-    const blob = new Blob([imageInfo.data], { type: 'image/svg+xml' });
-    const file = new File([blob], imageInfo.imageURL.split('/').pop(), { type: 'image/svg+xml' });
+    const blob = dataURLToBlob(imageInfo.data);
+    const file = new File([blob], imageInfo.imageURL.split('/').pop(), { type: blob.type });
     const formData = new FormData();
     formData.append("path", 'data/' + imageInfo.imageURL);
     formData.append("file", file);
@@ -315,7 +343,7 @@ export default class DrawioPlugin extends Plugin {
 
     const attrElement = blockElement.querySelector(".protyle-attr") as HTMLDivElement;
     if (attrElement) {
-      const pageCount = (imageInfo.data.match(/name=&quot;/g) || []).length;
+      const pageCount = (base64ToUnicode(imageInfo.data.split(',').pop()).match(/name(?:=&quot;|%3D%22)/g) || []).length;
       const labelHTML = `<span>draw.io${pageCount > 1 ? `:${pageCount}` : ''}</span>`;
       let labelElement = attrElement.querySelector(".label--embed-drawio") as HTMLDivElement;
       if (labelElement) {
@@ -373,7 +401,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -406,7 +434,7 @@ export default class DrawioPlugin extends Plugin {
         autosave: 1,
         modified: 'unsavedChanges',
         title: this.isMobile ? '' : imageInfo.imageURL,
-        xml: imageInfo.data,
+        xml: imageInfo.format === 'svg' ? base64ToUnicode(imageInfo.data.split(',').pop()) : imageInfo.data, // drawio直接读取svg的dataurl会导致中文乱码，需要重新编码
       });
     }
 
@@ -419,60 +447,70 @@ export default class DrawioPlugin extends Plugin {
       top: "auto",
       left: "auto",
     };
+    const fullscreenOnLogo = '<svg t="1763089104127" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5274" width="24" height="24"><path d="M149.333333 394.666667c17.066667 0 32-14.933333 32-32v-136.533334l187.733334 187.733334c6.4 6.4 14.933333 8.533333 23.466666 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-187.733333-187.733334H362.666667c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H149.333333c-4.266667 0-8.533333 0-10.666666 2.133334-8.533333 4.266667-14.933333 10.666667-19.2 17.066666-2.133333 4.266667-2.133333 8.533333-2.133334 12.8v213.333334c0 17.066667 14.933333 32 32 32zM874.666667 629.333333c-17.066667 0-32 14.933333-32 32v136.533334L642.133333 597.333333c-12.8-12.8-32-12.8-44.8 0s-12.8 32 0 44.8l200.533334 200.533334H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333334c4.266667 0 8.533333 0 10.666666-2.133334 8.533333-4.266667 14.933333-8.533333 17.066667-17.066666 2.133333-4.266667 2.133333-8.533333 2.133333-10.666667V661.333333c2.133333-17.066667-12.8-32-29.866666-32zM381.866667 595.2l-200.533334 200.533333V661.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333334c0 4.266667 0 8.533333 2.133334 10.666666 4.266667 8.533333 8.533333 14.933333 17.066666 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333l200.533333-200.533333c12.8-12.8 12.8-32 0-44.8s-29.866667-10.666667-42.666666 0zM904.533333 138.666667c0-2.133333 0-2.133333 0 0-4.266667-8.533333-10.666667-14.933333-17.066666-17.066667-4.266667-2.133333-8.533333-2.133333-10.666667-2.133333H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533334l-187.733334 187.733333c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333l187.733333-187.733333V362.666667c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V149.333333c-2.133333-4.266667-2.133333-8.533333-4.266667-10.666666z" fill="#666666" p-id="5275"></path></svg>';
+    const fullscreenOffLogo = '<svg t="1763089178999" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5443" width="24" height="24"><path d="M313.6 358.4H177.066667c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333333c4.266667 0 8.533333 0 10.666667-2.133333 8.533333-4.266667 14.933333-8.533333 17.066666-17.066667 2.133333-4.266667 2.133333-8.533333 2.133334-10.666667v-213.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v136.533333L172.8 125.866667c-12.8-12.8-32-12.8-44.8 0-12.8 12.8-12.8 32 0 44.8l185.6 187.733333zM695.466667 650.666667H832c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H618.666667c-4.266667 0-8.533333 0-10.666667 2.133333-8.533333 4.266667-14.933333 8.533333-17.066667 17.066667-2.133333 4.266667-2.133333 8.533333-2.133333 10.666666v213.333334c0 17.066667 14.933333 32 32 32s32-14.933333 32-32v-136.533334l200.533333 200.533334c6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-204.8-198.4zM435.2 605.866667c-4.266667-8.533333-8.533333-14.933333-17.066667-17.066667-4.266667-2.133333-8.533333-2.133333-10.666666-2.133333H192c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533333L128 851.2c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466666-8.533333l200.533334-200.533333V832c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V618.666667c-2.133333-4.266667-2.133333-8.533333-4.266667-12.8zM603.733333 403.2c4.266667 8.533333 8.533333 14.933333 17.066667 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333L896 170.666667c12.8-12.8 12.8-32 0-44.8-12.8-12.8-32-12.8-44.8 0l-187.733333 187.733333V177.066667c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333333c2.133333 4.266667 2.133333 8.533333 4.266666 12.8z" fill="#666666" p-id="5444"></path></svg>';
+    const switchFullscreen = () => {
+      const dialogContainerElement = dialog.element.querySelector('.b3-dialog__container') as HTMLElement;
+      if (dialogContainerElement) {
+        isFullscreen = !isFullscreen;
+        if (isFullscreen) {
+          dialogContainerStyle.width = dialogContainerElement.style.width;
+          dialogContainerStyle.height = dialogContainerElement.style.height;
+          dialogContainerStyle.maxWidth = dialogContainerElement.style.maxWidth;
+          dialogContainerStyle.maxHeight = dialogContainerElement.style.maxHeight;
+          dialogContainerStyle.top = dialogContainerElement.style.top;
+          dialogContainerStyle.left = dialogContainerElement.style.left;
+          dialogContainerElement.style.width = "100vw";
+          dialogContainerElement.style.height = "100vh";
+          dialogContainerElement.style.maxWidth = "unset";
+          dialogContainerElement.style.maxHeight = "unset";
+          dialogContainerElement.style.top = "0";
+          dialogContainerElement.style.left = "0";
+        } else {
+          dialogContainerElement.style.width = dialogContainerStyle.width;
+          dialogContainerElement.style.height = dialogContainerStyle.height;
+          dialogContainerElement.style.maxWidth = dialogContainerStyle.maxWidth;
+          dialogContainerElement.style.maxHeight = dialogContainerStyle.maxHeight;
+          dialogContainerElement.style.top = dialogContainerStyle.top;
+          dialogContainerElement.style.left = dialogContainerStyle.left;
+        }
+        const fullscreenButton = iframe.contentDocument.querySelector('.customFullscreenButton') as HTMLElement;
+        if (fullscreenButton) fullscreenButton.innerHTML = isFullscreen ? fullscreenOffLogo : fullscreenOnLogo;
+      }
+    }
+
     const onLoad = (message: any) => {
       const toolbarElement = iframe.contentDocument.querySelector(".geToolbarContainer .geToolbarEnd");
       if (toolbarElement) {
-        const fullscreenButton = HTMLToElement(`<a class="geButton"></a>`);
-        const fullscreenOnLogo = '<svg t="1763089104127" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5274" width="24" height="24"><path d="M149.333333 394.666667c17.066667 0 32-14.933333 32-32v-136.533334l187.733334 187.733334c6.4 6.4 14.933333 8.533333 23.466666 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-187.733333-187.733334H362.666667c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H149.333333c-4.266667 0-8.533333 0-10.666666 2.133334-8.533333 4.266667-14.933333 10.666667-19.2 17.066666-2.133333 4.266667-2.133333 8.533333-2.133334 12.8v213.333334c0 17.066667 14.933333 32 32 32zM874.666667 629.333333c-17.066667 0-32 14.933333-32 32v136.533334L642.133333 597.333333c-12.8-12.8-32-12.8-44.8 0s-12.8 32 0 44.8l200.533334 200.533334H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333334c4.266667 0 8.533333 0 10.666666-2.133334 8.533333-4.266667 14.933333-8.533333 17.066667-17.066666 2.133333-4.266667 2.133333-8.533333 2.133333-10.666667V661.333333c2.133333-17.066667-12.8-32-29.866666-32zM381.866667 595.2l-200.533334 200.533333V661.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333334c0 4.266667 0 8.533333 2.133334 10.666666 4.266667 8.533333 8.533333 14.933333 17.066666 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333l200.533333-200.533333c12.8-12.8 12.8-32 0-44.8s-29.866667-10.666667-42.666666 0zM904.533333 138.666667c0-2.133333 0-2.133333 0 0-4.266667-8.533333-10.666667-14.933333-17.066666-17.066667-4.266667-2.133333-8.533333-2.133333-10.666667-2.133333H661.333333c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533334l-187.733334 187.733333c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333l187.733333-187.733333V362.666667c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V149.333333c-2.133333-4.266667-2.133333-8.533333-4.266667-10.666666z" fill="#666666" p-id="5275"></path></svg>';
-        const fullscreenOffLogo = '<svg t="1763089178999" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5443" width="24" height="24"><path d="M313.6 358.4H177.066667c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h213.333333c4.266667 0 8.533333 0 10.666667-2.133333 8.533333-4.266667 14.933333-8.533333 17.066666-17.066667 2.133333-4.266667 2.133333-8.533333 2.133334-10.666667v-213.333333c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v136.533333L172.8 125.866667c-12.8-12.8-32-12.8-44.8 0-12.8 12.8-12.8 32 0 44.8l185.6 187.733333zM695.466667 650.666667H832c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32H618.666667c-4.266667 0-8.533333 0-10.666667 2.133333-8.533333 4.266667-14.933333 8.533333-17.066667 17.066667-2.133333 4.266667-2.133333 8.533333-2.133333 10.666666v213.333334c0 17.066667 14.933333 32 32 32s32-14.933333 32-32v-136.533334l200.533333 200.533334c6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466667-8.533333c12.8-12.8 12.8-32 0-44.8l-204.8-198.4zM435.2 605.866667c-4.266667-8.533333-8.533333-14.933333-17.066667-17.066667-4.266667-2.133333-8.533333-2.133333-10.666666-2.133333H192c-17.066667 0-32 14.933333-32 32s14.933333 32 32 32h136.533333L128 851.2c-12.8 12.8-12.8 32 0 44.8 6.4 6.4 14.933333 8.533333 23.466667 8.533333s17.066667-2.133333 23.466666-8.533333l200.533334-200.533333V832c0 17.066667 14.933333 32 32 32s32-14.933333 32-32V618.666667c-2.133333-4.266667-2.133333-8.533333-4.266667-12.8zM603.733333 403.2c4.266667 8.533333 8.533333 14.933333 17.066667 17.066667 4.266667 2.133333 8.533333 2.133333 10.666667 2.133333h213.333333c17.066667 0 32-14.933333 32-32s-14.933333-32-32-32h-136.533333L896 170.666667c12.8-12.8 12.8-32 0-44.8-12.8-12.8-32-12.8-44.8 0l-187.733333 187.733333V177.066667c0-17.066667-14.933333-32-32-32s-32 14.933333-32 32v213.333333c2.133333 4.266667 2.133333 8.533333 4.266666 12.8z" fill="#666666" p-id="5444"></path></svg>';
+        const fullscreenButton = HTMLToElement(`<a class="geButton customFullscreenButton"></a>`);
         fullscreenButton.innerHTML = fullscreenOnLogo;
         toolbarElement.prepend(fullscreenButton);
-        fullscreenButton.addEventListener('click', () => {
-          const dialogContainerElement = dialog.element.querySelector('.b3-dialog__container') as HTMLElement;
-          if (dialogContainerElement) {
-            isFullscreen = !isFullscreen;
-            fullscreenButton.innerHTML = isFullscreen ? fullscreenOffLogo : fullscreenOnLogo;
-            if (isFullscreen) {
-              dialogContainerStyle.width = dialogContainerElement.style.width;
-              dialogContainerStyle.height = dialogContainerElement.style.height;
-              dialogContainerStyle.maxWidth = dialogContainerElement.style.maxWidth;
-              dialogContainerStyle.maxHeight = dialogContainerElement.style.maxHeight;
-              dialogContainerStyle.top = dialogContainerElement.style.top;
-              dialogContainerStyle.left = dialogContainerElement.style.left;
-              dialogContainerElement.style.width = "100vw";
-              dialogContainerElement.style.height = "100vh";
-              dialogContainerElement.style.maxWidth = "unset";
-              dialogContainerElement.style.maxHeight = "unset";
-              dialogContainerElement.style.top = "0";
-              dialogContainerElement.style.left = "0";
-            } else {
-              dialogContainerElement.style.width = dialogContainerStyle.width;
-              dialogContainerElement.style.height = dialogContainerStyle.height;
-              dialogContainerElement.style.maxWidth = dialogContainerStyle.maxWidth;
-              dialogContainerElement.style.maxHeight = dialogContainerStyle.maxHeight;
-              dialogContainerElement.style.top = dialogContainerStyle.top;
-              dialogContainerElement.style.left = dialogContainerStyle.left;
-            }
-          }
-        });
+        fullscreenButton.addEventListener('click', switchFullscreen);
+      }
+      if (this.data[STORAGE_NAME].fullscreenEdit) {
+        switchFullscreen();
       }
     }
 
     const onSave = (message: any) => {
       postMessage({
         action: 'export',
-        format: 'xmlsvg'
+        format: `xml${imageInfo.format}`,
       });
     }
 
     const onExport = (message: any) => {
-      if (message.format == 'svg') {
-        const base64String = message.data.split(';base64,').pop();
-        imageInfo.data = base64ToUnicode(base64String);
-
-        // 解决CSS5的light-dark样式在部分浏览器上无效的问题
-        const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
-        imageInfo.data = imageInfo.data.replace(regex, '$1');
+      if (message.message.format == `xml${imageInfo.format}`) {
+        imageInfo.data = message.data;
+        if (imageInfo.format == 'svg') {
+          // 解决CSS5的light-dark样式在部分浏览器上无效的问题
+          let base64String = message.data.split(',').pop();
+          let svgContent = base64ToUnicode(base64String);
+          const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
+          svgContent = svgContent.replace(regex, '$1');
+          base64String = unicodeToBase64(svgContent);
+          imageInfo.data = `data:image/svg+xml;base64,${base64String}`
+        }
 
         this.updateDrawioImage(imageInfo, () => {
           postMessage({
