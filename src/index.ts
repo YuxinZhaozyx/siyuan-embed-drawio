@@ -396,12 +396,13 @@ export default class DrawioPlugin extends Plugin {
   };
 
   public openEditDialog(imageInfo: DrawioImageInfo) {
+    const iframeID = unicodeToBase64(`drawio-${window.Lute.NewNodeID()}-${imageInfo.imageURL}`);
     const editDialogHTML = `
 <div class="drawio-edit-dialog">
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -536,6 +537,7 @@ export default class DrawioPlugin extends Plugin {
     }
 
     const messageEventHandler = (event) => {
+      if (!((event.source.location.href as string).includes(`iframeID=${iframeID}`))) return;
       if (event.data && event.data.length > 0) {
         try {
           var message = JSON.parse(event.data);
@@ -571,12 +573,13 @@ export default class DrawioPlugin extends Plugin {
   }
 
   public openLightboxDialog(imageInfo: DrawioImageInfo) {
+    const iframeID = unicodeToBase64(`drawio-${window.Lute.NewNodeID()}-${imageInfo.imageURL}`);
     const lightboxDialogHTML = `
 <div class="drawio-lightbox-dialog">
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -609,11 +612,12 @@ export default class DrawioPlugin extends Plugin {
         autosave: 0,
         modified: 'unsavedChanges',
         title: this.isMobile ? '' : imageInfo.imageURL,
-        xml: imageInfo.data,
+        xml: imageInfo.format === 'svg' ? base64ToUnicode(imageInfo.data.split(',').pop()) : imageInfo.data, // drawio直接读取svg的dataurl会导致中文乱码，需要重新编码
       });
     }
 
     const messageEventHandler = (event) => {
+      if (!((event.source.location.href as string).includes(`iframeID=${iframeID}`))) return;
       if (event.data && event.data.length > 0) {
         try {
           var message = JSON.parse(event.data);

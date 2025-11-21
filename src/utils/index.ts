@@ -84,7 +84,7 @@ export function formatToMimeType(format: string): string {
   return formatToMimeType[format] || '';
 }
 
-export function mineTypeOfDataURL(dataURL: string): string {
+export function mimeTypeOfDataURL(dataURL: string): string {
   const mime = dataURL.match(/:(.*?);/)![1];
   return mime || '';
 }
