@@ -9,5 +9,7 @@
   "embedImageFormat": "Embed Image Format",
   "embedImageFormatDescription": "Format of New draw.io Image",
   "fullscreenEdit": "Fullscreen Edit",
-  "fullscreenEditDescription": "Edit draw.io in fullscreen mode"
+  "fullscreenEditDescription": "Edit draw.io in fullscreen mode (only for dialog mode)",
+  "editWindow": "Edit Window Mode",
+  "editWindowDescription": "The type of window for editing draw.io"
 }

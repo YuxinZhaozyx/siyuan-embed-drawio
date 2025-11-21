@@ -5,6 +5,8 @@ import {
   fetchPost,
   IWebSocketData,
   getAllEditor,
+  openTab,
+  getAllModels,
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
@@ -44,6 +46,7 @@ export default class DrawioPlugin extends Plugin {
   private _globalKeyDownHandler;
 
   private settingItems: SettingItem[];
+  public EDIT_TAB_TYPE = "drawio-edit-tab";
 
   async onload() {
     this.initMetaInfo();
@@ -61,13 +64,19 @@ export default class DrawioPlugin extends Plugin {
       }
     });
 
+    this.setupEditTab();
+
     this.protyleSlash = [{
       filter: ["drawio", "draw.io"],
       id: "drawio",
       html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">draw.io</span></div>`,
       callback: (protyle, nodeElement) => {
         this.newDrawioImage(nodeElement.dataset.nodeId, (imageInfo) => {
-          this.openEditDialog(imageInfo);
+          if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+            this.openEditTab(imageInfo);
+          } else {
+            this.openEditDialog(imageInfo);
+          }
         });
       },
     }];
@@ -164,8 +173,10 @@ export default class DrawioPlugin extends Plugin {
       this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].embedImageFormat = (dialog.element.querySelector("[data-type='embedImageFormat']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
+      this.data[STORAGE_NAME].editWindow = (dialog.element.querySelector("[data-type='editWindow']") as HTMLSelectElement).value;
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
       this.reloadAllEditor();
+      this.removeAllDrawioTab();
       dialog.destroy();
     });
   }
@@ -176,6 +187,7 @@ export default class DrawioPlugin extends Plugin {
     if (typeof this.data[STORAGE_NAME].labelDisplay === 'undefined') this.data[STORAGE_NAME].labelDisplay = "showLabelOnHover";
     if (typeof this.data[STORAGE_NAME].embedImageFormat === 'undefined') this.data[STORAGE_NAME].embedImageFormat = "svg";
     if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
+    if (typeof this.data[STORAGE_NAME].editWindow === 'undefined') this.data[STORAGE_NAME].editWindow = 'dialog';
 
     this.settingItems = [
       {
@@ -212,6 +224,19 @@ export default class DrawioPlugin extends Plugin {
           const element = HTMLToElement(`<input type="checkbox" class="b3-switch fn__flex-center" data-type="fullscreenEdit">`) as HTMLInputElement;
           element.checked = this.data[STORAGE_NAME].fullscreenEdit;
           return element;
+        },
+      },
+      {
+        title: this.i18n.editWindow,
+        direction: "column",
+        description: this.i18n.editWindowDescription,
+        createActionElement: () => {
+          const options = ["dialog", "tab"];
+          const optionsHTML = options.map(option => {
+            const isSelected = String(option) === String(this.data[STORAGE_NAME].editWindow);
+            return `<option value="${option}"${isSelected ? " selected" : ""}>${option}</option>`;
+          }).join("");
+          return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="editWindow">${optionsHTML}</select>`);
         },
       },
     ];
@@ -372,7 +397,11 @@ export default class DrawioPlugin extends Plugin {
           label: `${this.i18n.editDrawio}`,
           index: 1,
           click: () => {
-            this.openEditDialog(imageInfo);
+            if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+              this.openEditTab(imageInfo);
+            } else {
+              this.openEditDialog(imageInfo);
+            }
           }
         });
         window.siyuan.menus.menu.addItem({
@@ -395,8 +424,122 @@ export default class DrawioPlugin extends Plugin {
     }
   };
 
+  public setupEditTab() {
+    const that = this;
+    this.addTab({
+      type: this.EDIT_TAB_TYPE,
+      init() {
+        const imageInfo: DrawioImageInfo = this.data;
+        const iframeID = unicodeToBase64(`drawio-edit-tab-${imageInfo.imageURL}`);
+        const editTabHTML = `
+<div class="drawio-edit-tab">
+    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&noExitBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+</div>`;
+        this.element.innerHTML = editTabHTML;
+
+        const iframe = this.element.querySelector("iframe");
+        iframe.focus();
+
+        const postMessage = (message: any) => {
+          if (!iframe.contentWindow) return;
+          iframe.contentWindow.postMessage(JSON.stringify(message), '*');
+        };
+
+        const onInit = (message: any) => {
+          postMessage({
+            action: "load",
+            autosave: 1,
+            modified: 'unsavedChanges',
+            title: '',
+            xml: imageInfo.format === 'svg' ? base64ToUnicode(imageInfo.data.split(',').pop()) : imageInfo.data, // drawio直接读取svg的dataurl会导致中文乱码，需要重新编码
+          });
+        }
+
+        const onSave = (message: any) => {
+          postMessage({
+            action: 'export',
+            format: `xml${imageInfo.format}`,
+          });
+        }
+
+        const onExport = (message: any) => {
+          if (message.message.format == `xml${imageInfo.format}`) {
+            imageInfo.data = message.data;
+            if (imageInfo.format == 'svg') {
+              // 解决CSS5的light-dark样式在部分浏览器上无效的问题
+              let base64String = message.data.split(',').pop();
+              let svgContent = base64ToUnicode(base64String);
+              const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
+              svgContent = svgContent.replace(regex, '$1');
+              base64String = unicodeToBase64(svgContent);
+              imageInfo.data = `data:image/svg+xml;base64,${base64String}`
+            }
+
+            that.updateDrawioImage(imageInfo, () => {
+              postMessage({
+                action: 'status',
+                messageKey: 'allChangesSaved',
+                modified: false
+              });
+              fetch(imageInfo.imageURL, { cache: 'reload' }).then(() => {
+                document.querySelectorAll(`img[data-src='${imageInfo.imageURL}']`).forEach(imageElement => {
+                  (imageElement as HTMLImageElement).src = imageInfo.imageURL;
+                  const blockElement = imageElement.closest("div[data-type='NodeParagraph']") as HTMLElement;
+                  if (blockElement) {
+                    that.updateAttrLabel(imageInfo, blockElement);
+                  }
+                });
+              });
+            });
+          }
+        }
+
+        const messageEventHandler = (event) => {
+          if (!((event.source.location.href as string).includes(`iframeID=${iframeID}`))) return;
+          if (event.data && event.data.length > 0) {
+            try {
+              var message = JSON.parse(event.data);
+              if (message != null) {
+                // console.log(message.event);
+                if (message.event == "init") {
+                  onInit(message);
+                }
+                else if (message.event == "save" || message.event == "autosave") {
+                  onSave(message);
+                }
+                else if (message.event == "export") {
+                  onExport(message);
+                }
+              }
+            }
+            catch (err) {
+              console.error(err);
+            }
+          }
+        };
+
+        window.addEventListener("message", messageEventHandler);
+        this.beforeDestroy = () => {
+          window.removeEventListener("message", messageEventHandler);
+        };
+      }
+    });
+  }
+
+  public openEditTab(imageInfo: DrawioImageInfo) {
+    openTab({
+      app: this.app,
+      custom: {
+        id: this.name + `drawio-edit-tab`,
+        icon: "iconEdit",
+        title: `${imageInfo.imageURL.split('/').pop()}`,
+        data: imageInfo,
+      }
+    })
+  }
+
   public openEditDialog(imageInfo: DrawioImageInfo) {
-    const iframeID = unicodeToBase64(`drawio-${window.Lute.NewNodeID()}-${imageInfo.imageURL}`);
+    const iframeID = unicodeToBase64(`drawio-edit-dialog-${imageInfo.imageURL}`);
     const editDialogHTML = `
 <div class="drawio-edit-dialog">
     <div class="edit-dialog-header resize__move"></div>
@@ -573,7 +716,7 @@ export default class DrawioPlugin extends Plugin {
   }
 
   public openLightboxDialog(imageInfo: DrawioImageInfo) {
-    const iframeID = unicodeToBase64(`drawio-${window.Lute.NewNodeID()}-${imageInfo.imageURL}`);
+    const iframeID = unicodeToBase64(`drawio-lightbox-dialog-${imageInfo.imageURL}`);
     const lightboxDialogHTML = `
 <div class="drawio-lightbox-dialog">
     <div class="edit-dialog-header resize__move"></div>
@@ -642,5 +785,13 @@ export default class DrawioPlugin extends Plugin {
 
   public reloadAllEditor() {
     getAllEditor().forEach((protyle) => { protyle.reload(false); });
+  }
+
+  public removeAllDrawioTab() {
+    getAllModels().custom.forEach((custom: any) => {
+      if (custom.type == this.name + this.EDIT_TAB_TYPE) {
+        custom.tab?.close();
+      }
+    })
   }
 }
