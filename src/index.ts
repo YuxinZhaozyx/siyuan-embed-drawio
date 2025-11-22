@@ -95,6 +95,7 @@ export default class DrawioPlugin extends Plugin {
     if (this._openMenuImageHandler) this.eventBus.off("open-menu-image", this._openMenuImageHandler);
     if (this._globalKeyDownHandler) document.documentElement.removeEventListener("keydown", this._globalKeyDownHandler);
     this.reloadAllEditor();
+    this.removeAllDrawioTab();
   }
 
   uninstall() {
@@ -448,7 +449,7 @@ export default class DrawioPlugin extends Plugin {
         const iframeID = unicodeToBase64(`drawio-edit-tab-${imageInfo.imageURL}`);
         const editTabHTML = `
 <div class="drawio-edit-tab">
-    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&noExitBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
 </div>`;
         this.element.innerHTML = editTabHTML;
 
@@ -480,15 +481,7 @@ export default class DrawioPlugin extends Plugin {
         const onExport = (message: any) => {
           if (message.message.format == `xml${imageInfo.format}`) {
             imageInfo.data = message.data;
-            if (imageInfo.format == 'svg') {
-              // 解决CSS5的light-dark样式在部分浏览器上无效的问题
-              let base64String = message.data.split(',').pop();
-              let svgContent = base64ToUnicode(base64String);
-              const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
-              svgContent = svgContent.replace(regex, '$1');
-              base64String = unicodeToBase64(svgContent);
-              imageInfo.data = `data:image/svg+xml;base64,${base64String}`
-            }
+            imageInfo.data = that.fixImageContent(imageInfo.data);
 
             that.updateDrawioImage(imageInfo, () => {
               postMessage({
@@ -509,6 +502,10 @@ export default class DrawioPlugin extends Plugin {
           }
         }
 
+        const onExit = (message: any) => {
+          this.tab.close();
+        }
+
         const messageEventHandler = (event) => {
           if (!((event.source.location.href as string).includes(`iframeID=${iframeID}`))) return;
           if (event.data && event.data.length > 0) {
@@ -524,6 +521,9 @@ export default class DrawioPlugin extends Plugin {
                 }
                 else if (message.event == "export") {
                   onExport(message);
+                }
+                else if (message.event == "exit") {
+                  onExit(message);
                 }
               }
             }
@@ -545,7 +545,7 @@ export default class DrawioPlugin extends Plugin {
     openTab({
       app: this.app,
       custom: {
-        id: this.name + `drawio-edit-tab`,
+        id: this.name + this.EDIT_TAB_TYPE,
         icon: "iconEdit",
         title: `${imageInfo.imageURL.split('/').pop()}`,
         data: imageInfo,
@@ -661,15 +661,7 @@ export default class DrawioPlugin extends Plugin {
     const onExport = (message: any) => {
       if (message.message.format == `xml${imageInfo.format}`) {
         imageInfo.data = message.data;
-        if (imageInfo.format == 'svg') {
-          // 解决CSS5的light-dark样式在部分浏览器上无效的问题
-          let base64String = message.data.split(',').pop();
-          let svgContent = base64ToUnicode(base64String);
-          const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
-          svgContent = svgContent.replace(regex, '$1');
-          base64String = unicodeToBase64(svgContent);
-          imageInfo.data = `data:image/svg+xml;base64,${base64String}`
-        }
+        imageInfo.data = this.fixImageContent(imageInfo.data);
 
         this.updateDrawioImage(imageInfo, () => {
           postMessage({
@@ -812,5 +804,28 @@ export default class DrawioPlugin extends Plugin {
 
   public isDarkMode(): boolean {
     return this.data[STORAGE_NAME].themeMode === 'themeDark' || (this.data[STORAGE_NAME].themeMode === 'themeOS' && window.siyuan.config.appearance.mode === 1);
+  }
+
+  public fixImageContent(imageDataURL: string) {
+    if (imageDataURL.startsWith('data:image/svg+xml')) {
+      let base64String = imageDataURL.split(',').pop();
+      let svgContent = base64ToUnicode(base64String);
+
+      // 解决CSS5的light-dark样式在部分浏览器上无效的问题
+      const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
+      svgContent = svgContent.replace(regex, '$1');
+
+      // 当图像为空时，使用默认的占位图
+      const svgElement = HTMLToElement(svgContent);
+      if (svgElement && svgElement.hasAttribute('width') && svgElement.hasAttribute('height') && svgElement.getAttribute('width') == '1px' && svgElement.getAttribute('height') == '1px') {
+        const defaultSvgElement = HTMLToElement(base64ToUnicode(this.getPlaceholderImageContent('svg').split(',').pop()));
+        defaultSvgElement.setAttribute('content', svgElement.getAttribute('content'));
+        svgContent = defaultSvgElement.outerHTML;
+      }
+
+      base64String = unicodeToBase64(svgContent);
+      imageDataURL = `data:image/svg+xml;base64,${base64String}`;
+    }
+    return imageDataURL;
   }
 }

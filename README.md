@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.5.1
+    + Feature: placeholder SVG image
 + v0.5.0
     + Feature: configuration of theme
     + Feature: support editing in Tab
