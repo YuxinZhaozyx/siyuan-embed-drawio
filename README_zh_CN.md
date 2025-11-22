@@ -45,6 +45,9 @@
 - [x] 支持移动端编辑
 - [x] 图像支持暗黑模式
 - [x] 灯箱
++ [x] 全屏编辑
++ [x] 明暗模式
++ [x] Tab/Dialog窗口编辑
 
 > 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)或[在思源笔记社区中发帖](https://ld246.com/article/1762744532030)
 
@@ -67,6 +70,9 @@
 
 ## 更新日志
 
++ v0.5.0
+    + 新增功能：明暗主题设置
+    + 新增功能：支持Tab编辑
 + v0.4.0
     + 新增功能：在配置中选择以SVG还是PNG存储图像
     + 新增功能：全屏编辑

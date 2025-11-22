@@ -31,6 +31,9 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 - [x] Support for mobile devices
 - [x] Support dark mode
 - [x] Lightbox
+- [x] Fullscreen edit
+- [x] Light/Dark mode
+- [x] Edit in Tab/Dialog
 
 > If you have additional feature requests or suggestions, feel free to [open an issue on GitHub](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues) or [post in the SiYuan community](https://ld246.com/article/1762744532030) to request support for additional packages.
 
@@ -78,6 +81,9 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.5.0
+    + Feature: configuration of theme
+    + Feature: support editing in Tab
 + v0.4.0
     + Feature: select SVG or PNG storage for draw.io image
     + Feature: fullscreen edit
