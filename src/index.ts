@@ -174,6 +174,7 @@ export default class DrawioPlugin extends Plugin {
       this.data[STORAGE_NAME].embedImageFormat = (dialog.element.querySelector("[data-type='embedImageFormat']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
       this.data[STORAGE_NAME].editWindow = (dialog.element.querySelector("[data-type='editWindow']") as HTMLSelectElement).value;
+      this.data[STORAGE_NAME].themeMode = (dialog.element.querySelector("[data-type='themeMode']") as HTMLSelectElement).value;
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
       this.reloadAllEditor();
       this.removeAllDrawioTab();
@@ -188,6 +189,7 @@ export default class DrawioPlugin extends Plugin {
     if (typeof this.data[STORAGE_NAME].embedImageFormat === 'undefined') this.data[STORAGE_NAME].embedImageFormat = "svg";
     if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
     if (typeof this.data[STORAGE_NAME].editWindow === 'undefined') this.data[STORAGE_NAME].editWindow = 'dialog';
+    if (typeof this.data[STORAGE_NAME].themeMode === 'undefined') this.data[STORAGE_NAME].themeMode = "themeLight";
 
     this.settingItems = [
       {
@@ -237,6 +239,19 @@ export default class DrawioPlugin extends Plugin {
             return `<option value="${option}"${isSelected ? " selected" : ""}>${option}</option>`;
           }).join("");
           return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="editWindow">${optionsHTML}</select>`);
+        },
+      },
+      {
+        title: this.i18n.themeMode,
+        direction: "column",
+        description: this.i18n.themeModeDescription,
+        createActionElement: () => {
+          const options = ["themeLight", "themeDark", "themeOS"];
+          const optionsHTML = options.map(option => {
+            const isSelected = String(option) === String(this.data[STORAGE_NAME].themeMode);
+            return `<option value="${option}"${isSelected ? " selected" : ""}>${window.siyuan.languages[option]}</option>`;
+          }).join("");
+          return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="themeMode">${optionsHTML}</select>`);
         },
       },
     ];
@@ -433,7 +448,7 @@ export default class DrawioPlugin extends Plugin {
         const iframeID = unicodeToBase64(`drawio-edit-tab-${imageInfo.imageURL}`);
         const editTabHTML = `
 <div class="drawio-edit-tab">
-    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&noExitBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&noExitBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
 </div>`;
         this.element.innerHTML = editTabHTML;
 
@@ -545,7 +560,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -722,7 +737,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1&iframeID=${iframeID}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -793,5 +808,9 @@ export default class DrawioPlugin extends Plugin {
         custom.tab?.close();
       }
     })
+  }
+
+  public isDarkMode(): boolean {
+    return this.data[STORAGE_NAME].themeMode === 'themeDark' || (this.data[STORAGE_NAME].themeMode === 'themeOS' && window.siyuan.config.appearance.mode === 1);
   }
 }

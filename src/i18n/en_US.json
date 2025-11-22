@@ -11,5 +11,7 @@
   "fullscreenEdit": "Fullscreen Edit",
   "fullscreenEditDescription": "Edit draw.io in fullscreen mode (only for dialog mode)",
   "editWindow": "Edit Window Mode",
-  "editWindowDescription": "The type of window for editing draw.io"
+  "editWindowDescription": "The type of window for editing draw.io",
+  "themeMode": "Theme Mode",
+  "themeModeDescription": "Theme of window"
 }
