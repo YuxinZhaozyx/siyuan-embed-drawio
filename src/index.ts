@@ -10,7 +10,18 @@ import {
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
-import { base64ToUnicode, blobToDataURL, dataURLToBlob, HTMLToElement, unicodeToBase64 } from "./utils";
+import {
+  getImageSizeFromBase64,
+  locatePNGtEXt,
+  replaceSubArray,
+  arrayToBase64,
+  base64ToArray,
+  base64ToUnicode,
+  unicodeToBase64,
+  blobToDataURL,
+  dataURLToBlob,
+  HTMLToElement,
+} from "./utils";
 import defaultImageContent from "@/default.json";
 
 let PluginInfo = {
@@ -807,24 +818,41 @@ export default class DrawioPlugin extends Plugin {
   }
 
   public fixImageContent(imageDataURL: string) {
+    // 解决SVG CSS5的light-dark样式在部分浏览器上无效的问题
     if (imageDataURL.startsWith('data:image/svg+xml')) {
       let base64String = imageDataURL.split(',').pop();
       let svgContent = base64ToUnicode(base64String);
-
-      // 解决CSS5的light-dark样式在部分浏览器上无效的问题
       const regex = /light-dark\s*\(\s*((?:[^(),]|\w+\([^)]*\))+)\s*,\s*(?:[^(),]|\w+\([^)]*\))+\s*\)/gi;
       svgContent = svgContent.replace(regex, '$1');
-
-      // 当图像为空时，使用默认的占位图
-      const svgElement = HTMLToElement(svgContent);
-      if (svgElement && svgElement.hasAttribute('width') && svgElement.hasAttribute('height') && svgElement.getAttribute('width') == '1px' && svgElement.getAttribute('height') == '1px') {
-        const defaultSvgElement = HTMLToElement(base64ToUnicode(this.getPlaceholderImageContent('svg').split(',').pop()));
-        defaultSvgElement.setAttribute('content', svgElement.getAttribute('content'));
-        svgContent = defaultSvgElement.outerHTML;
-      }
-
       base64String = unicodeToBase64(svgContent);
       imageDataURL = `data:image/svg+xml;base64,${base64String}`;
+    }
+    // 当图像为空时，使用默认的占位图
+    const imageSize = getImageSizeFromBase64(imageDataURL);
+    if (imageSize && imageSize.width <= 1 && imageSize.height <= 1) {
+      if (imageDataURL.startsWith('data:image/svg+xml;base64,')) {
+        let base64String = imageDataURL.split(',').pop();
+        let svgContent = base64ToUnicode(base64String);
+        const svgElement = HTMLToElement(svgContent);
+        if (svgElement) {
+          const defaultSvgElement = HTMLToElement(base64ToUnicode(this.getPlaceholderImageContent('svg').split(',').pop()));
+          defaultSvgElement.setAttribute('content', svgElement.getAttribute('content'));
+          svgContent = defaultSvgElement.outerHTML;
+          base64String = unicodeToBase64(svgContent);
+          imageDataURL = `data:image/svg+xml;base64,${base64String}`;
+        }
+      }
+      if (imageDataURL.startsWith('data:image/png;base64,')) {
+        let binaryArray = base64ToArray(imageDataURL.split(',').pop());
+        let defaultBinaryArray = base64ToArray(this.getPlaceholderImageContent('png').split(',').pop());
+        const srcLocation = locatePNGtEXt(binaryArray);
+        const destLocation = locatePNGtEXt(defaultBinaryArray);
+        if (srcLocation && destLocation) {
+          binaryArray = replaceSubArray(binaryArray, srcLocation, defaultBinaryArray, destLocation);
+          const base64String = arrayToBase64(binaryArray);
+          imageDataURL = `data:image/png;base64,${base64String}`;
+        }
+      }
     }
     return imageDataURL;
   }

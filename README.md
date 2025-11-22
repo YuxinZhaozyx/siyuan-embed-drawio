@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.5.2
+    + Optimize: Excalidraw contents of SVG/PNG placeholder image are empty
 + v0.5.1
     + Feature: placeholder SVG image
 + v0.5.0

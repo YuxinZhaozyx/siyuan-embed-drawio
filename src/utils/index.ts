@@ -88,3 +88,235 @@ export function mimeTypeOfDataURL(dataURL: string): string {
   const mime = dataURL.match(/:(.*?);/)![1];
   return mime || '';
 }
+
+export function base64ToArray(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+export function arrayToBase64(array: Uint8Array): string {
+  const binary = String.fromCharCode(...array);
+  return btoa(binary);
+}
+
+function getPNGSizeFromBase64(dataUrl: string): { width: number, height: number } | null {
+  // 1. 检查是否是 PNG Data URL
+  if (!dataUrl.startsWith('data:image/png;base64,')) {
+    console.warn('Not a PNG data URL');
+    return null;
+  }
+
+  // 2. 提取 base64 部分并解码为 Uint8Array
+  const base64 = dataUrl.split(',')[1];
+  if (!base64) return null;
+
+  let binaryString: string;
+  try {
+    binaryString = atob(base64);
+  } catch (e) {
+    console.warn('Invalid base64 string');
+    return null;
+  }
+
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // 3. 检查 PNG 签名（前8字节）
+  const pngSignature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (let i = 0; i < 8; i++) {
+    if (bytes[i] !== pngSignature[i]) {
+      console.warn('Invalid PNG signature');
+      return null;
+    }
+  }
+
+  // 4. 读取 IHDR 中的 width 和 height（大端序，从第16字节开始？注意：IHDR chunk 在第8字节后开始）
+  // 实际结构：
+  // - bytes[0..7]: signature
+  // - bytes[8..11]: chunk length (should be 13 for IHDR)
+  // - bytes[12..15]: chunk type "IHDR"
+  // - bytes[16..19]: width (4 bytes, big-endian)
+  // - bytes[20..23]: height (4 bytes, big-endian)
+
+  if (bytes.length < 24) {
+    console.warn('PNG data too short');
+    return null;
+  }
+
+  // 可选：验证 chunk type is "IHDR"
+  const ihdrType = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+  if (ihdrType !== 'IHDR') {
+    console.warn('First chunk is not IHDR');
+    return null;
+  }
+
+  const width = (
+    (bytes[16] << 24) |
+    (bytes[17] << 16) |
+    (bytes[18] << 8) |
+    bytes[19]
+  ) >>> 0; // 无符号
+
+  const height = (
+    (bytes[20] << 24) |
+    (bytes[21] << 16) |
+    (bytes[22] << 8) |
+    bytes[23]
+  ) >>> 0;
+
+  return {
+    width: width,
+    height: height,
+  };
+}
+
+function getSVGSizeFromBase64(dataUrl: string): { width: number, height: number } | null { 
+  if (!dataUrl.startsWith('data:image/svg+xml;base64,')) {
+    console.warn('Not a SVG data URL');
+    return null;
+  }
+
+  const base64 = dataUrl.split(',')[1];
+  if (!base64) return null;
+
+  let xmlStr: string;
+  try {
+    xmlStr = atob(base64);
+  } catch {
+    return null;
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlStr, 'image/svg+xml');
+  const svg = doc.documentElement;
+
+  if (svg.tagName.toLowerCase() !== 'svg') return null;
+
+  // Try getBoundingClientRect-like intrinsic size
+  const widthAttr = svg.getAttribute('width');
+  const heightAttr = svg.getAttribute('height');
+  const viewBox = svg.getAttribute('viewBox');
+
+  const parseLength = (val: string | null): number | null => {
+    if (!val) return null;
+    const match = val.match(/^(\d+(?:\.\d+)?)$/); // only pure number or float
+    if (match) return parseFloat(match[1]);
+    const pxMatch = val.match(/^(\d+(?:\.\d+)?)px$/i);
+    if (pxMatch) return parseFloat(pxMatch[1]);
+    return null;
+  };
+
+  let w = parseLength(widthAttr);
+  let h = parseLength(heightAttr);
+
+  if ((w === null || h === null) && viewBox) {
+    const vb = viewBox.trim().split(/\s+/).map(Number);
+    if (vb.length === 4 && !vb.some(isNaN)) {
+      if (w === null) w = vb[2];
+      if (h === null) h = vb[3];
+    }
+  }
+
+  return w != null && h != null && w > 0 && h > 0 ? { width: w, height: h } : null;
+}
+
+export function getImageSizeFromBase64(dataUrl: string): { width: number, height: number } | null {
+  if (dataUrl.startsWith('data:image/png;base64,')) {
+    return getPNGSizeFromBase64(dataUrl);
+  }
+  else if (dataUrl.startsWith('data:image/svg+xml;base64,')) {
+    return getSVGSizeFromBase64(dataUrl);
+  }
+  return null;
+}
+
+export function locatePNGtEXt(data: Uint8Array): { index: number; length: number } | null {
+  if (data.length < 8) return null;
+
+  // 检查 PNG 文件头（可选，但推荐）
+  const pngSignature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (let i = 0; i < 8; i++) {
+    if (data[i] !== pngSignature[i]) {
+      return null; // 不是合法 PNG
+    }
+  }
+
+  let offset = 8; // 跳过签名
+
+  while (offset <= data.length - 12) {
+    // 读取 Length（大端序，4字节）
+    const length = (
+      (data[offset] << 24) |
+      (data[offset + 1] << 16) |
+      (data[offset + 2] << 8) |
+      data[offset + 3]
+    ) >>> 0;
+
+    // 检查是否超出文件边界
+    if (offset + 12 + length > data.length) {
+      break; // chunk 不完整
+    }
+
+    // 读取 Chunk Type（4字节）
+    const typeBytes = data.subarray(offset + 4, offset + 8);
+    const typeStr = String.fromCharCode(...typeBytes);
+
+    if (typeStr === 'tEXt') {
+      // 找到 tEXt chunk
+      return { index: offset, length: 12 + length };
+    }
+
+    // 跳到下一个 chunk（12 = 4 Length + 4 Type + 4 CRC）
+    offset += 12 + length;
+  }
+
+  return null; // 未找到 tEXt
+}
+
+export function replaceSubArray(
+  srcArray: Uint8Array,
+  srcSubArrayLocation: { index: number; length: number },
+  destArray: Uint8Array,
+  destSubArrayLocation: { index: number; length: number }
+): Uint8Array {
+  const { index: srcIndex, length: srcLength } = srcSubArrayLocation;
+  const { index: destIndex, length: destLength } = destSubArrayLocation;
+
+  // 边界检查：确保源子数组有效
+  if (srcIndex < 0 || srcLength < 0 || srcIndex + srcLength > srcArray.length) {
+    throw new Error('Invalid srcSubArrayLocation: out of bounds');
+  }
+
+  // 边界检查：确保目标子数组有效
+  if (destIndex < 0 || destLength < 0 || destIndex + destLength > destArray.length) {
+    throw new Error('Invalid destSubArrayLocation: out of bounds');
+  }
+
+  // 提取源子数组
+  const srcSubArray = srcArray.subarray(srcIndex, srcIndex + srcLength);
+
+  // 计算新数组长度
+  const newLength = destArray.length - destLength + srcSubArray.length;
+
+  // 创建结果数组
+  const result = new Uint8Array(newLength);
+
+  // 1. 复制 destArray 的前半部分 [0, destIndex)
+  result.set(destArray.subarray(0, destIndex), 0);
+
+  // 2. 插入 srcSubArray
+  result.set(srcSubArray, destIndex);
+
+  // 3. 复制 destArray 的后半部分 [destIndex + destLength, end)
+  const afterDestIndex = destIndex + destLength;
+  const afterSrcIndex = destIndex + srcSubArray.length;
+  result.set(destArray.subarray(afterDestIndex), afterSrcIndex);
+
+  return result;
+}
