@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.5.5
+    + Fix: shortcut for Tab
 + v0.5.4
     + Feature: fullscreen support for shortcut in Tab
 + v0.5.3

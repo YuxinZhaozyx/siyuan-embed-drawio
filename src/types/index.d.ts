@@ -128,6 +128,7 @@ interface Window {
         mode: number;
       };
       lang: string;
+      keymap: any;
     }
   };
   _sy_plugin_sample: {

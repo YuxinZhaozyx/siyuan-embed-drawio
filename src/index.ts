@@ -7,12 +7,14 @@ import {
   getAllEditor,
   openTab,
   getAllModels,
+  Custom,
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
 import {
   getImageSizeFromBase64,
   locatePNGtEXt,
+  insertPNGpHYs,
   replaceSubArray,
   arrayToBase64,
   base64ToArray,
@@ -22,6 +24,7 @@ import {
   dataURLToBlob,
   HTMLToElement,
 } from "./utils";
+import { matchHotKey } from "./utils/hotkey";
 import defaultImageContent from "@/default.json";
 
 let PluginInfo = {
@@ -444,11 +447,52 @@ export default class DrawioPlugin extends Plugin {
     })
   }
 
+  private getActiveCustomTab(type: string): Custom {
+    const allCustoms = getAllModels().custom;
+    const activeTabElement = document.querySelector(".layout__wnd--active .item--focus");
+    if (activeTabElement) {
+      const tabId = activeTabElement.getAttribute("data-id");
+      for (const custom of allCustoms as any[]) {
+        if (custom.type == this.name + type && custom.tab.headElement?.getAttribute('data-id') == tabId) {
+          return custom;
+        };
+      }
+    }
+    return null;
+  }
+
+  private tabHotKeyEventHandler = (event: KeyboardEvent, custom?: Custom) => {
+    // 自定义处理方式的快捷键
+    const isFullscreenHotKey = matchHotKey(window.siyuan.config.keymap.editor.general.fullscreen.custom, event);
+    const isCloseTabHotKey = matchHotKey(window.siyuan.config.keymap.general.closeTab.custom, event);
+    if (isFullscreenHotKey || isCloseTabHotKey) {
+      if (!custom) custom = this.getActiveCustomTab(this.EDIT_TAB_TYPE);
+      if (custom) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (isFullscreenHotKey) {
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            custom.element.requestFullscreen();
+          }
+        }
+        if (isCloseTabHotKey) {
+          custom.tab.close();
+        }
+      }
+    }
+  };
+
   private globalKeyDownHandler = (event: KeyboardEvent) => {
     // 如果是在代码编辑器里使用快捷键，则阻止冒泡 https://github.com/YuxinZhaozyx/siyuan-embed-tikz/issues/1
     if (document.activeElement.closest(".b3-dialog--open .drawio-edit-dialog")) {
       event.stopPropagation();
     }
+
+    // 快捷键
+    this.tabHotKeyEventHandler(event);
   };
 
   public setupEditTab() {
@@ -486,6 +530,7 @@ export default class DrawioPlugin extends Plugin {
           postMessage({
             action: 'export',
             format: `xml${imageInfo.format}`,
+            // scale: 1,
           });
         }
 
@@ -544,17 +589,8 @@ export default class DrawioPlugin extends Plugin {
           }
         };
 
-        const switchFullscreen = () => {
-          if (document.fullscreenElement) {
-            document.exitFullscreen();
-          } else {
-            this.element.requestFullscreen();
-          }
-        }
         const keydownEventHandleer = (event: KeyboardEvent) => {
-          if (event.key.toLowerCase() === 'y' && (event.altKey || event.metaKey)) {
-            switchFullscreen();
-          }
+          that.tabHotKeyEventHandler(event, this);
         };
 
         window.addEventListener("message", messageEventHandler);
@@ -842,6 +878,13 @@ export default class DrawioPlugin extends Plugin {
       base64String = unicodeToBase64(svgContent);
       imageDataURL = `data:image/svg+xml;base64,${base64String}`;
     }
+    // 设置PNG DPI
+    // if (imageDataURL.startsWith('data:image/png')) {
+    //   let binaryArray = base64ToArray(imageDataURL.split(',').pop());
+    //   binaryArray = insertPNGpHYs(binaryArray, 96 * 2);
+    //   const base64String = arrayToBase64(binaryArray);
+    //   imageDataURL = `data:image/png;base64,${base64String}`;
+    // }
     // 当图像为空时，使用默认的占位图
     const imageSize = getImageSizeFromBase64(imageDataURL);
     if (imageSize && imageSize.width <= 1 && imageSize.height <= 1) {
