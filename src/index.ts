@@ -544,9 +544,24 @@ export default class DrawioPlugin extends Plugin {
           }
         };
 
+        const switchFullscreen = () => {
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            this.element.requestFullscreen();
+          }
+        }
+        const keydownEventHandleer = (event: KeyboardEvent) => {
+          if (event.key.toLowerCase() === 'y' && (event.altKey || event.metaKey)) {
+            switchFullscreen();
+          }
+        };
+
         window.addEventListener("message", messageEventHandler);
+        iframe.contentWindow.addEventListener("keydown", keydownEventHandleer);
         this.beforeDestroy = () => {
           window.removeEventListener("message", messageEventHandler);
+          iframe.contentWindow.removeEventListener("keydown", keydownEventHandleer);
         };
       }
     });
