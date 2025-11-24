@@ -271,3 +271,7 @@ export const matchHotKey = (hotKey: string, event: KeyboardEvent) => {
     }
     return false;
 };
+
+export const getCustomHotKey = (hotkey: {custom: string, default: string}): string => {
+    return hotkey.custom || hotkey.default;
+}

@@ -23,7 +23,7 @@ import {
   dataURLToBlob,
   HTMLToElement,
 } from "./utils";
-import { matchHotKey } from "./utils/hotkey";
+import { matchHotKey, getCustomHotKey } from "./utils/hotkey";
 import defaultImageContent from "@/default.json";
 
 let PluginInfo = {
@@ -471,9 +471,23 @@ export default class DrawioPlugin extends Plugin {
   }
 
   private tabHotKeyEventHandler = (event: KeyboardEvent, custom?: Custom) => {
+    // 恢复默认处理方式的快捷键
+    if (custom) {
+      const isGoToEditTabNext = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.general.goToEditTabNext), event);
+      const isGoToEditTabPrev = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.general.goToEditTabPrev), event);
+      const isGoToTabNext = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.general.goToTabNext), event);
+      const isGoToTabPrev = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.general.goToTabPrev), event);
+      if (isGoToEditTabNext || isGoToEditTabPrev || isGoToTabNext || isGoToTabPrev) {
+        event.preventDefault();
+        event.stopPropagation();
+        const clonedEvent = new KeyboardEvent(event.type, event);
+        window.dispatchEvent(clonedEvent);
+      }
+    }
+
     // 自定义处理方式的快捷键
-    const isFullscreenHotKey = matchHotKey(window.siyuan.config.keymap.editor.general.fullscreen.custom, event);
-    const isCloseTabHotKey = matchHotKey(window.siyuan.config.keymap.general.closeTab.custom, event);
+    const isFullscreenHotKey = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.editor.general.fullscreen), event);
+    const isCloseTabHotKey = matchHotKey(getCustomHotKey(window.siyuan.config.keymap.general.closeTab), event);
     if (isFullscreenHotKey || isCloseTabHotKey) {
       if (!custom) custom = this.getActiveCustomTab(this.EDIT_TAB_TYPE);
       if (custom) {
