@@ -14,7 +14,6 @@ import PluginInfoString from '@/../plugin.json';
 import {
   getImageSizeFromBase64,
   locatePNGtEXt,
-  insertPNGpHYs,
   replaceSubArray,
   arrayToBase64,
   base64ToArray,
@@ -187,6 +186,7 @@ export default class DrawioPlugin extends Plugin {
     (dialog.element.querySelector(".b3-dialog__action [data-type='confirm']") as HTMLElement).addEventListener("click", () => {
       this.data[STORAGE_NAME].labelDisplay = (dialog.element.querySelector("[data-type='labelDisplay']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].embedImageFormat = (dialog.element.querySelector("[data-type='embedImageFormat']") as HTMLSelectElement).value;
+      this.data[STORAGE_NAME].zoom = (parseFloat((dialog.element.querySelector("[data-type='zoom']") as HTMLInputElement).value) || 100) / 100;
       this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
       this.data[STORAGE_NAME].editWindow = (dialog.element.querySelector("[data-type='editWindow']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].themeMode = (dialog.element.querySelector("[data-type='themeMode']") as HTMLSelectElement).value;
@@ -202,6 +202,7 @@ export default class DrawioPlugin extends Plugin {
     if (!this.data[STORAGE_NAME]) this.data[STORAGE_NAME] = {};
     if (typeof this.data[STORAGE_NAME].labelDisplay === 'undefined') this.data[STORAGE_NAME].labelDisplay = "showLabelOnHover";
     if (typeof this.data[STORAGE_NAME].embedImageFormat === 'undefined') this.data[STORAGE_NAME].embedImageFormat = "svg";
+    if (typeof this.data[STORAGE_NAME].zoom === 'undefined') this.data[STORAGE_NAME].zoom = 1;
     if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
     if (typeof this.data[STORAGE_NAME].editWindow === 'undefined') this.data[STORAGE_NAME].editWindow = 'dialog';
     if (typeof this.data[STORAGE_NAME].themeMode === 'undefined') this.data[STORAGE_NAME].themeMode = "themeLight";
@@ -231,6 +232,14 @@ export default class DrawioPlugin extends Plugin {
             return `<option value="${option}"${isSelected ? " selected" : ""}>${option}</option>`;
           }).join("");
           return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="embedImageFormat">${optionsHTML}</select>`);
+        },
+      },
+      {
+        title: this.i18n.zoom,
+        direction: "column",
+        description: this.i18n.zoomDescription,
+        createActionElement: () => {
+          return HTMLToElement(`<div class="fn__flex fn__flex-center"><input class="b3-text-field fn__flex-center" data-type="zoom" type="number" min="0" value="${this.data[STORAGE_NAME].zoom * 100}" ><div class="fn__flex-center">%</div></div>`);
         },
       },
       {
@@ -530,7 +539,7 @@ export default class DrawioPlugin extends Plugin {
           postMessage({
             action: 'export',
             format: `xml${imageInfo.format}`,
-            // scale: 1,
+            scale: that.data[STORAGE_NAME].zoom,
           });
         }
 
@@ -717,6 +726,7 @@ export default class DrawioPlugin extends Plugin {
       postMessage({
         action: 'export',
         format: `xml${imageInfo.format}`,
+        scale: this.data[STORAGE_NAME].zoom,
       });
     }
 
@@ -878,13 +888,6 @@ export default class DrawioPlugin extends Plugin {
       base64String = unicodeToBase64(svgContent);
       imageDataURL = `data:image/svg+xml;base64,${base64String}`;
     }
-    // 设置PNG DPI
-    // if (imageDataURL.startsWith('data:image/png')) {
-    //   let binaryArray = base64ToArray(imageDataURL.split(',').pop());
-    //   binaryArray = insertPNGpHYs(binaryArray, 96 * 2);
-    //   const base64String = arrayToBase64(binaryArray);
-    //   imageDataURL = `data:image/png;base64,${base64String}`;
-    // }
     // 当图像为空时，使用默认的占位图
     const imageSize = getImageSizeFromBase64(imageDataURL);
     if (imageSize && imageSize.width <= 1 && imageSize.height <= 1) {

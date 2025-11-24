@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.6.0
+    + Feature: Zoom
 + v0.5.5
     + Fix: shortcut for Tab
 + v0.5.4

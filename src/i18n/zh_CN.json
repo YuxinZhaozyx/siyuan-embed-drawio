@@ -13,5 +13,7 @@
   "editWindow": "编辑窗口",
   "editWindowDescription": "编辑窗口的形式",
   "themeMode": "主题模式",
-  "themeModeDescription": "窗口的主题"
+  "themeModeDescription": "窗口的主题",
+  "zoom": "缩放",
+  "zoomDescription": "缩放比例（让PNG图像更清晰）"
 }

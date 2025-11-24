@@ -13,5 +13,7 @@
   "editWindow": "Edit Window Mode",
   "editWindowDescription": "The type of window for editing draw.io",
   "themeMode": "Theme Mode",
-  "themeModeDescription": "Theme of window"
+  "themeModeDescription": "Theme of window",
+  "zoom": "Zoom",
+  "zoomDescription": "Scale Factor (make PNG image more clear)"
 }
