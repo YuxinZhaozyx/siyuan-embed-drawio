@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.6.2
+    + Fix: input `/drawio` too fast caures create image fail
 + v0.6.1
     + Fix: shortcut for tab switch
 + v0.6.0

@@ -84,13 +84,15 @@ export default class DrawioPlugin extends Plugin {
       id: "drawio",
       html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">draw.io</span></div>`,
       callback: (protyle, nodeElement) => {
-        this.newDrawioImage(nodeElement.dataset.nodeId, (imageInfo) => {
-          if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
-            this.openEditTab(imageInfo);
-          } else {
-            this.openEditDialog(imageInfo);
-          }
-        });
+        setTimeout(() => {
+          this.newDrawioImage(nodeElement.dataset.nodeId, (imageInfo) => {
+            if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+              this.openEditTab(imageInfo);
+            } else {
+              this.openEditDialog(imageInfo);
+            }
+          });
+        }, 500);
       },
     }];
 
