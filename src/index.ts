@@ -8,6 +8,7 @@ import {
   openTab,
   getAllModels,
   Custom,
+  Protyle,
 } from "siyuan";
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json';
@@ -84,15 +85,13 @@ export default class DrawioPlugin extends Plugin {
       id: "drawio",
       html: `<div class="b3-list-item__first"><svg class="b3-list-item__graphic"><use xlink:href="#iconImage"></use></svg><span class="b3-list-item__text">draw.io</span></div>`,
       callback: (protyle, nodeElement) => {
-        setTimeout(() => {
-          this.newDrawioImage(nodeElement.dataset.nodeId, (imageInfo) => {
-            if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
-              this.openEditTab(imageInfo);
-            } else {
-              this.openEditDialog(imageInfo);
-            }
-          });
-        }, 500);
+        this.newDrawioImage(protyle, (imageInfo) => {
+          if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+            this.openEditTab(imageInfo);
+          } else {
+            this.openEditDialog(imageInfo);
+          }
+        });
       },
     }];
 
@@ -354,7 +353,7 @@ export default class DrawioPlugin extends Plugin {
     return imageContent;
   }
 
-  public newDrawioImage(blockID: string, callback?: (imageInfo: DrawioImageInfo) => void) {
+  public newDrawioImage(protyle: Protyle, callback?: (imageInfo: DrawioImageInfo) => void) {
     const format = this.data[STORAGE_NAME].embedImageFormat;
     const imageName = `drawio-image-${window.Lute.NewNodeID()}.${format}`;
     const placeholderImageContent = this.getPlaceholderImageContent(format);
@@ -366,11 +365,7 @@ export default class DrawioPlugin extends Plugin {
     formData.append('isDir', 'false');
     fetchPost('/api/file/putFile', formData, () => {
       const imageURL = `assets/${imageName}`;
-      fetchPost('/api/block/updateBlock', {
-        id: blockID,
-        data: `![](${imageURL})`,
-        dataType: "markdown",
-      });
+      protyle.insert(`![](${imageURL})`);
       const imageInfo: DrawioImageInfo = {
         imageURL: imageURL,
         data: placeholderImageContent,
