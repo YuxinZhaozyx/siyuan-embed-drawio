@@ -73,7 +73,35 @@ export default class DrawioPlugin extends Plugin {
       if (imageElement) {
         const imageURL = imageElement.getAttribute("data-src");
         this.getDrawioImageInfo(imageURL, false).then((imageInfo) => {
-          this.updateAttrLabel(imageInfo, blockElement);
+          if (imageInfo) {
+            this.updateAttrLabel(imageInfo, blockElement);
+            const actionElement = blockElement.querySelector(".protyle-action") as HTMLElement;
+            if (actionElement) {
+              const editBtnElement = HTMLToElement(`<span aria-label="${this.i18n.editDrawio}" data-position="4north" class="ariaLabel protyle-icon"><svg><use xlink:href="#iconEdit"></use></svg></span>`);
+              editBtnElement.addEventListener("click", (event: PointerEvent) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+                  this.openEditTab(imageInfo);
+                } else {
+                  this.openEditDialog(imageInfo);
+                }
+              });
+              actionElement.insertAdjacentElement('afterbegin', editBtnElement);
+              for (const child of actionElement.children) {
+                child.classList.toggle('protyle-icon--only', false);
+                child.classList.toggle('protyle-icon--first', false);
+                child.classList.toggle('protyle-icon--last', false);
+              }
+              if (actionElement.children.length == 1) {
+                actionElement.firstElementChild.classList.toggle('protyle-icon--only', true);
+              }
+              else if (actionElement.children.length > 1) {
+                actionElement.firstElementChild.classList.toggle('protyle-icon--first', true);
+                actionElement.lastElementChild.classList.toggle('protyle-icon--last', true);
+              }
+            }
+          }
         });
       }
     });

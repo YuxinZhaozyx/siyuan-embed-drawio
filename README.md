@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.6.4
+    + Feature: Add edit button to image right top
 + v0.6.3
     + Add QQ group
 + v0.6.2
