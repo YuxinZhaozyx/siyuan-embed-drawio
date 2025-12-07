@@ -67,14 +67,13 @@ export default class DrawioPlugin extends Plugin {
     this.initSetting();
 
     this._mutationObserver = this.setAddImageBlockMuatationObserver(document.body, (blockElement: HTMLElement) => {
-      if (this.data[STORAGE_NAME].labelDisplay === "noLabel") return;
-
       const imageElement = blockElement.querySelector("img") as HTMLImageElement;
       if (imageElement) {
         const imageURL = imageElement.getAttribute("data-src");
         this.getDrawioImageInfo(imageURL, false).then((imageInfo) => {
           if (imageInfo) {
-            this.updateAttrLabel(imageInfo, blockElement);
+            if (this.data[STORAGE_NAME].labelDisplay !== "noLabel") this.updateAttrLabel(imageInfo, blockElement);
+
             const actionElement = blockElement.querySelector(".protyle-action") as HTMLElement;
             if (actionElement) {
               const editBtnElement = HTMLToElement(`<span aria-label="${this.i18n.editDrawio}" data-position="4north" class="ariaLabel protyle-icon"><svg><use xlink:href="#iconEdit"></use></svg></span>`);
