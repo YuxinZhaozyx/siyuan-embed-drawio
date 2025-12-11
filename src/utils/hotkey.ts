@@ -275,3 +275,62 @@ export const matchHotKey = (hotKey: string, event: KeyboardEvent) => {
 export const getCustomHotKey = (hotkey: {custom: string, default: string}): string => {
     return hotkey.custom || hotkey.default;
 }
+
+export const simulateHotKey = (hotkey: string): KeyboardEvent => {
+    // Parse the hotkey string
+    const keys = hotkey.split('');
+    let ctrlKey = false;
+    let shiftKey = false;
+    let altKey = false;
+    let metaKey = false;
+    let keyCode = 0;
+
+    // Map of symbol to key code
+    const keyMap: { [key: string]: number } = {};
+    Object.keys(Constants.KEYCODELIST).forEach(code => {
+        // @ts-ignore
+        keyMap[Constants.KEYCODELIST[code]] = parseInt(code);
+    });
+
+    // Handle modifier keys based on platform
+    const isMacPlatform = isMac();
+
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        switch (key) {
+            case '⌘':
+                if (isMacPlatform) {
+                    metaKey = true;
+                } else {
+                    ctrlKey = true;
+                }
+                break;
+            case '⌃':
+                ctrlKey = true;
+                break;
+            case '⇧':
+                shiftKey = true;
+                break;
+            case '⌥':
+                altKey = true;
+                break;
+            default:
+                // Find the key code for this character
+                if (keyMap[key]) {
+                    keyCode = keyMap[key];
+                }
+                break;
+        }
+    }
+
+    // Create and return the KeyboardEvent
+    return new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey,
+        shiftKey,
+        altKey,
+        metaKey,
+        keyCode
+    });
+};

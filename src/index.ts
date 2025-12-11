@@ -80,11 +80,14 @@ export default class DrawioPlugin extends Plugin {
               editBtnElement.addEventListener("click", (event: PointerEvent) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
-                  this.openEditTab(imageInfo);
-                } else {
-                  this.openEditDialog(imageInfo);
-                }
+                this.getDrawioImageInfo(imageElement.getAttribute("data-src"), false).then((imageInfo) => {
+                  if (!imageInfo) return;
+                  if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+                    this.openEditTab(imageInfo);
+                  } else {
+                    this.openEditDialog(imageInfo);
+                  }
+                });
               });
               actionElement.insertAdjacentElement('afterbegin', editBtnElement);
               for (const child of actionElement.children) {

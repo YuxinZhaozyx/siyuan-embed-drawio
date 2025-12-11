@@ -81,6 +81,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.6.6
+    + Fix: edit button can only modify image once
 + v0.6.5
     + Fix: set label to none will not show edit button
 + v0.6.4
