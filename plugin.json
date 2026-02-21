@@ -2,7 +2,7 @@
   "name": "siyuan-embed-drawio",
   "author": "Yuxin Zhao",
   "url": "https://github.com/YuxinZhaozyx/siyuan-embed-drawio",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "minAppVersion": "3.0.0",
   "disabledInPublish": true,
   "backends": [
@@ -25,7 +25,7 @@
   },
   "funding": {
     "custom": [
-      "https://ld246.com/article/1762744532030"
+      "https://yuxinzhao.net/sponsor"
     ]
   },
   "keywords": []

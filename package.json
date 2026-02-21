@@ -1,6 +1,6 @@
 {
   "name": "siyuan-embed-drawio",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "type": "module",
   "description": "This is a plugin for siyuan",
   "author": "",
@@ -9,7 +9,7 @@
   "repository": "",
   "scripts": {
     "dev": "vite build --watch",
-    "prepare:draw": "curl -L -o draw.war https://github.com/jgraph/drawio/releases/download/v28.2.9/draw.war --ssl-no-revoke && unzip draw.war -d draw",
+    "prepare:draw": "curl -L -o draw.war https://github.com/jgraph/drawio/releases/download/v29.5.1/draw.war --ssl-no-revoke && unzip draw.war -d draw",
     "release": "node ./release.js",
     "release:manual": "node ./release.js --mode=manual",
     "release:patch": "node ./release.js --mode=patch",

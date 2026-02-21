@@ -81,6 +81,10 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.6.7
+    + Update: update draw.io to v29.5.1
+    + Optimize: Only images starting with `drawio-` will show edit button and label to optimize document loading speed
+    + Feature: Quickly create draw.io image with shortcut
 + v0.6.6
     + Fix: edit button can only modify image once
 + v0.6.5

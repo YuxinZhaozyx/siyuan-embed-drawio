@@ -70,6 +70,8 @@ export default class DrawioPlugin extends Plugin {
       const imageElement = blockElement.querySelector("img") as HTMLImageElement;
       if (imageElement) {
         const imageURL = imageElement.getAttribute("data-src");
+        const imageURLRegex = /^assets\/drawio-.+\.(?:svg|png)$/;
+        if (!imageURLRegex.test(imageURL)) return;
         this.getDrawioImageInfo(imageURL, false).then((imageInfo) => {
           if (imageInfo) {
             if (this.data[STORAGE_NAME].labelDisplay !== "noLabel") this.updateAttrLabel(imageInfo, blockElement);
@@ -124,6 +126,20 @@ export default class DrawioPlugin extends Plugin {
         });
       },
     }];
+    // 注册快捷键（都默认置空）
+    this.addCommand({
+        langKey: "createDrawio",
+        hotkey: "",
+        editorCallback: (protyle) => {
+          this.newDrawioImage(protyle.getInstance(), (imageInfo) => {
+            if (!this.isMobile && this.data[STORAGE_NAME].editWindow === 'tab') {
+              this.openEditTab(imageInfo);
+            } else {
+              this.openEditDialog(imageInfo);
+            }
+          });
+        },
+    });
 
     this._openMenuImageHandler = this.openMenuImageHandler.bind(this);
     this.eventBus.on("open-menu-image", this._openMenuImageHandler);
