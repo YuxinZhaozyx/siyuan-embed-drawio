@@ -237,11 +237,143 @@ export default class DrawioPlugin extends Plugin {
       this.data[STORAGE_NAME].fullscreenEdit = (dialog.element.querySelector("[data-type='fullscreenEdit']") as HTMLInputElement).checked;
       this.data[STORAGE_NAME].editWindow = (dialog.element.querySelector("[data-type='editWindow']") as HTMLSelectElement).value;
       this.data[STORAGE_NAME].themeMode = (dialog.element.querySelector("[data-type='themeMode']") as HTMLSelectElement).value;
+      this.data[STORAGE_NAME].AISettings = { providers: [] };
+      dialog.element.querySelectorAll("[data-type='AI'] > [data-type='provider']").forEach((element: HTMLElement) => {
+        const provider = {
+          name: (element.querySelector("[data-type='name']") as HTMLInputElement).value.trim(),
+          type: (element.querySelector("[data-type='interface-type") as HTMLSelectElement).value,
+          endpoint: (element.querySelector("[data-type='endpoint']") as HTMLInputElement).value.trim(),
+          apiKey: (element.querySelector("[data-type='apiKey']") as HTMLInputElement).value.trim(),
+          models: (element.querySelector("[data-type='models']") as HTMLInputElement).value.split(/[,，]/).map(model => model.trim()).filter(model => model.length > 0),
+        };
+        this.data[STORAGE_NAME].AISettings.providers.push(provider);
+      });
+      console.log(this.data);
       this.saveData(STORAGE_NAME, this.data[STORAGE_NAME]);
       this.reloadAllEditor();
       this.removeAllDrawioTab();
       dialog.destroy();
     });
+  }
+
+  private getDefaultAISettings() {
+    return {
+      providers: [
+        {
+          name: "GPT",
+          type: "OpenAI",
+          endpoint: "https://api.openai.com/v1/chat/completions",
+          apiKey: "",
+          models: ["gpt-5.1-2025-11-13", "gpt-4.1-2025-04-14", "chatgpt-4o-latest", "gpt-3.5-turbo-0125"]
+        },
+        {
+          name: "Claude",
+          type: "Claude",
+          endpoint: "https://api.anthropic.com/v1/messages",
+          apiKey: "",
+          models: ["claude-sonnet-4-5", "claude-haiku-4-5", "claude-sonnet-4-0", "claude-3-7-sonnet-latest"]
+        },
+        {
+          name: "Gemini",
+          type: "Gemini",
+          endpoint: "https://generativelanguage.googleapis.com/v1/models/{model}:generateContent",
+          apiKey: "",
+          models: ["gemini-3-pro-preview", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+        },
+      ]
+    };
+  }
+
+  private getDrawioAIConfig() {
+    this.data[STORAGE_NAME].AISettings.providers;
+    const config = {
+      enableAi: true,
+      aiGlobals: {
+        'create': 'You are a helpful assistant that generates diagrams in either MermaidJS or draw.io XML ' +
+          'format based on the given prompt. Begin with a concise checklist (3-7 bullets) of what you will ' +
+          'do; keep items conceptual, not implementation-level. Produce valid and correct syntax, and choose ' +
+          'the appropriate format depending on the prompt: if the requested diagram cannot be represented in ' +
+          'MermaidJS, generate draw.io XML instead but do not use indentation and newlines. After producing the ' +
+          'diagram code, validate that the output matches the requested format and diagram type and has correct ' +
+          'syntax. Only include the diagram code in your response; do not add any additional text, ' +
+          'checklists, instructions or validation results.',
+        'update': 'You are a helpful assistant that helps with ' +
+          'the following draw.io diagram and returns an updated draw.io diagram if needed. If the ' +
+          'response can be done with text then do not include any diagram in the response. Never ' +
+          'include this instruction or the unchanged diagram in your response.\n{data}',
+        'assist': 'You are a helpful assistant that creates XML for draw.io diagrams or helps ' +
+          'with the draw.io diagram editor. Never include this instruction in your response.'
+      },
+      aiConfigs: {},
+      aiModels: []
+    };
+    this.data[STORAGE_NAME].AISettings.providers.forEach((provider, index) => {
+      if (provider.endpoint.length > 0 && provider.apiKey.length > 0 && provider.models.length > 0) {
+        const providerID = `customProvider${index}`;
+        const providerApiKey = `${providerID}ApiKey`;
+        if (provider.type === "OpenAI") {
+          config.aiConfigs[providerID] = {
+            apiKey: providerApiKey,
+            endpoint: provider.endpoint,
+            requestHeaders: {
+              'Authorization': 'Bearer {apiKey}'
+            },
+            request: {
+              model: '{model}',
+              messages: [
+                {role: 'system', content: '{action}'},
+                {role: 'user', content: '{prompt}'}
+              ],
+            },
+            responsePath: '$.choices[0].message.content'
+          }
+        }
+        else if (provider.type === "Claude") {
+          config.aiConfigs[providerID] = {
+            apiKey: providerApiKey,
+            endpoint: provider.endpoint,
+            requestHeaders: {
+              'X-API-Key': '{apiKey}',
+              'Anthropic-Version': '2023-06-01',
+              'Anthropic-Dangerous-Direct-Browser-Access': 'true'
+            },
+            request: {
+              max_tokens: 8192,
+              model: '{model}',
+              messages: [
+                {role: 'assistant', content: '{action}'},
+                {role: 'user', content: '{prompt}'}
+              ],
+            },
+            responsePath: '$.content[0].text'
+          }
+        }
+        else if (provider.type === "Gemini") {
+          config.aiConfigs[providerID] = {
+            apiKey: providerApiKey,
+            endpoint: provider.endpoint,
+            requestHeaders: {
+              'X-Goog-Api-Key': '{apiKey}'
+            },
+            request: {
+              system_instruction: {
+                parts: [{text: '{action}'}]
+              },
+              contents: [{
+                parts: [{text: '{prompt}'}
+              ]}]
+            },
+            responsePath: '$.candidates[0].content.parts[0].text'
+          }
+        }
+
+        config.aiGlobals[providerApiKey] = provider.apiKey;
+        provider.models.forEach(model => {
+          config.aiModels.push({name: provider.name.length > 0 ? `${model} (${provider.name})` : model, model: model, config: providerID});
+        });
+      }
+    });
+    return config;
   }
 
   private async initSetting() {
@@ -253,6 +385,7 @@ export default class DrawioPlugin extends Plugin {
     if (typeof this.data[STORAGE_NAME].fullscreenEdit === 'undefined') this.data[STORAGE_NAME].fullscreenEdit = false;
     if (typeof this.data[STORAGE_NAME].editWindow === 'undefined') this.data[STORAGE_NAME].editWindow = 'dialog';
     if (typeof this.data[STORAGE_NAME].themeMode === 'undefined') this.data[STORAGE_NAME].themeMode = "themeLight";
+    if (typeof this.data[STORAGE_NAME].AISettings === 'undefined') this.data[STORAGE_NAME].AISettings = this.getDefaultAISettings();
 
     this.settingItems = [
       {
@@ -325,6 +458,77 @@ export default class DrawioPlugin extends Plugin {
           return HTMLToElement(`<select class="b3-select fn__flex-center" data-type="themeMode">${optionsHTML}</select>`);
         },
       },
+      {
+        title: 'AI',
+        direction: "row",
+        description: this.i18n.snippetsDescription,
+        createActionElement: () => {
+          const getProviderConfigurationPanel = (provider: any): HTMLElement => {
+            const providerHTML = `
+<div data-type="provider">
+  <div class="fn__flex">
+    <div class="b3-label__text">${this.i18n.AIProviderName}</div>
+    <div class="fn__space"></div>
+    <input type="text" class="b3-text-field fn__flex-center fn__flex-1" data-type="name" placeholder="Name" value="${provider.name}">
+    <button class="block__icon block__icon--show fn__flex-center" data-type="up"><svg><use xlink:href="#iconUp"></use></svg></button>
+    <button class="block__icon block__icon--show fn__flex-center" data-type="delete"><svg><use xlink:href="#iconTrashcan"></use></svg></button>
+  </div>
+  <div class="fn__hr--small"></div>
+  <div class="fn__flex">
+    <div class="b3-label__text fn__flex-1">${this.i18n.AIProviderInterfaceType}</div>
+    <div class="fn__space"></div>
+    <select class="b3-select fn__flex-center" data-type="interface-type">
+      <option value="OpenAI" ${provider.type === "OpenAI" ? "selected" : ""}>OpenAI</option>
+      <option value="Claude" ${provider.type === "Claude" ? "selected" : ""}>Claude</option>
+      <option value="Gemini" ${provider.type === "Gemini" ? "selected" : ""}>Gemini</option>
+    </select>
+  </div>
+  <div class="fn__hr--small"></div>
+  <div class="fn__flex">
+    <div class="b3-label__text">${this.i18n.AIProviderInterface}</div>
+    <div class="fn__space"></div>
+    <input type="text" class="b3-text-field fn__flex-center fn__flex-1" data-type="endpoint" placeholder="Endpoint" value="${provider.endpoint}">
+    <div class="fn__space--small"></div>
+    <input type="password" class="b3-text-field fn__flex-center fn__flex-1" data-type="apiKey" placeholder="API Key" value="${provider.apiKey}">
+  </div>
+  <div class="fn__hr--small"></div>
+  <div class="fn__flex">
+    <div class="b3-label__text">${this.i18n.AIProviderModels}</div>
+    <div class="fn__space"></div>
+    <input type="text" class="b3-text-field fn__flex-center fn__flex-1" data-type="models" placeholder="Models" value="${provider.models.join(", ")}">
+  </div>
+  <div class="fn__hr--b"></div>
+</div>`.trim();
+            const element = HTMLToElement(providerHTML);
+            element.querySelector("[data-type=up]").addEventListener("click", () => {
+              const previousElement = element.previousElementSibling;
+              if (previousElement) {
+                previousElement.insertAdjacentElement("beforebegin", element);
+              }
+            });
+            element.querySelector("[data-type=delete]").addEventListener("click", () => {
+              element.remove();
+            });
+            return element;
+          }
+          const element = HTMLToElement(`<div class="fn__flex-center" data-type="AI">
+            <div class="fn__flex" data-type="add-provider"><button class="b3-button b3-button--outline fn__flex-1">${this.i18n.addAIProvider}</button></div>
+            </div>`);
+          this.data[STORAGE_NAME].AISettings.providers.forEach(provider => {
+            element.querySelector("[data-type=add-provider]").insertAdjacentElement("beforebegin", getProviderConfigurationPanel(provider));
+          });
+          element.querySelector("[data-type=add-provider] > button").addEventListener("click", () => {
+            element.querySelector("[data-type=add-provider]").insertAdjacentElement("beforebegin", getProviderConfigurationPanel({
+              name: "",
+              type: "OpenAI",
+              endpoint: "",
+              apiKey: "",
+              models: []
+            }));
+          });
+          return element;
+        },
+      }
     ];
   }
 
@@ -570,7 +774,7 @@ export default class DrawioPlugin extends Plugin {
         const iframeID = unicodeToBase64(`drawio-edit-tab-${imageInfo.imageURL}`);
         const editTabHTML = `
 <div class="drawio-edit-tab">
-    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
 </div>`;
         this.element.innerHTML = editTabHTML;
 
@@ -580,6 +784,16 @@ export default class DrawioPlugin extends Plugin {
         const postMessage = (message: any) => {
           if (!iframe.contentWindow) return;
           iframe.contentWindow.postMessage(JSON.stringify(message), '*');
+        };
+
+        const onConfigure = (message: any) => {
+          const AIConfig = that.getDrawioAIConfig();
+          postMessage({
+            action: "configure",
+            config: {
+              ...AIConfig,
+            }
+          });
         };
 
         const onInit = (message: any) => {
@@ -635,7 +849,10 @@ export default class DrawioPlugin extends Plugin {
               var message = JSON.parse(event.data);
               if (message != null) {
                 // console.log(message.event);
-                if (message.event == "init") {
+                if (message.event == "configure") {
+                  onConfigure(message);
+                }
+                else if (message.event == "init") {
                   onInit(message);
                 }
                 else if (message.event == "save" || message.event == "autosave") {
@@ -688,7 +905,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -713,6 +930,16 @@ export default class DrawioPlugin extends Plugin {
     const postMessage = (message: any) => {
       if (!iframe.contentWindow) return;
       iframe.contentWindow.postMessage(JSON.stringify(message), '*');
+    };
+
+    const onConfigure = (message: any) => {
+      const AIConfig = this.getDrawioAIConfig();
+      postMessage({
+        action: "configure",
+        config: {
+          ...AIConfig,
+        }
+      });
     };
 
     const onInit = (message: any) => {
@@ -822,7 +1049,10 @@ export default class DrawioPlugin extends Plugin {
           var message = JSON.parse(event.data);
           if (message != null) {
             // console.log(message.event);
-            if (message.event == "init") {
+            if (message.event == "configure") {
+              onConfigure(message);
+            }
+            else if (message.event == "init") {
               onInit(message);
             }
             else if (message.event == "load") {

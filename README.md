@@ -34,6 +34,7 @@ This plugin serves as the third plugin in the **Embed Series**, aiming to provid
 - [x] Fullscreen edit
 - [x] Light/Dark mode
 - [x] Edit in Tab/Dialog
+- [x] AI Generation
 
 > If you have additional feature requests or suggestions, feel free to [open an issue on GitHub](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues) or [post in the SiYuan community](https://ld246.com/article/1762744532030) to request support for additional packages.
 
@@ -81,6 +82,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.7.0
+    + Feature: Support AI generation
 + v0.6.7
     + Update: update draw.io to v29.5.1
     + Optimize: Only images starting with `drawio-` will show edit button and label to optimize document loading speed

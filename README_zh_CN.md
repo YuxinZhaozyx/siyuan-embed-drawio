@@ -18,6 +18,8 @@
 
 > 重要提示：为提升文档加载速度，本插件只识别以 `drawio-` 开头的图片，如果您发现原有的draw.io图片不显示编辑按钮，请重命名图片为 `drawio-` 开头的文件名。
 
+> 重大更新：v0.7.0版本起支持AI生成
+
 > 「嵌入式系列」思源插件QQ交流群：1037356690
 > 赞助: https://yuxinzhao.net/sponsor
 
@@ -53,6 +55,7 @@
 - [x] 全屏编辑
 - [x] 明暗模式
 - [x] Tab/Dialog窗口编辑
+- [x] AI生成
 
 > 如有更多需求/建议欢迎[在GitHub仓库中提issue](https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues)或[在思源笔记社区中发帖](https://ld246.com/article/1762744532030)
 
@@ -75,6 +78,8 @@
 
 ## 更新日志
 
++ v0.7.0
+    + 新增功能：支持AI生成
 + v0.6.7
     + 更新：更新draw.io到v29.5.1
     + 优化：只有命名以 `drawio-` 开头的图片才会显示编辑按钮和标签以优化文档加载速度

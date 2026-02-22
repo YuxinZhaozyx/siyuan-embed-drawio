@@ -16,5 +16,10 @@
   "themeMode": "Theme Mode",
   "themeModeDescription": "Theme of window",
   "zoom": "Zoom",
-  "zoomDescription": "Scale Factor (make PNG image more clear)"
+  "zoomDescription": "Scale Factor (make PNG image more clear)",
+  "AIProviderName": "Provider Name",
+  "AIProviderInterfaceType": "Interface Type",
+  "AIProviderInterface": "Interface",
+  "AIProviderModels": "Models",
+  "addAIProvider": "Add Provider"
 }
