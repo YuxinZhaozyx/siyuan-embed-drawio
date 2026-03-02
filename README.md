@@ -82,6 +82,8 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.7.1
+    + Fix: nested directory in assets/
 + v0.7.0
     + Feature: Support AI generation
 + v0.6.7
