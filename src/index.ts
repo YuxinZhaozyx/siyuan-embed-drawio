@@ -70,7 +70,7 @@ export default class DrawioPlugin extends Plugin {
       const imageElement = blockElement.querySelector("img") as HTMLImageElement;
       if (imageElement) {
         const imageURL = imageElement.getAttribute("data-src");
-        const imageURLRegex = /^assets\/drawio-.+\.(?:svg|png)$/;
+        const imageURLRegex = /^assets\/(?:.+\/)?drawio-.+\.(?:svg|png)$/;
         if (!imageURLRegex.test(imageURL)) return;
         this.getDrawioImageInfo(imageURL, false).then((imageInfo) => {
           if (imageInfo) {
