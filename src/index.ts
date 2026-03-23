@@ -9,8 +9,10 @@ import {
   getAllModels,
   Custom,
   Protyle,
+  Constants,
 } from "siyuan";
 import "@/index.scss";
+import { compare } from "compare-versions";
 import PluginInfoString from '@/../plugin.json';
 import {
   getImageSizeFromBase64,
@@ -389,6 +391,28 @@ export default class DrawioPlugin extends Plugin {
 
     this.settingItems = [
       {
+        title: this.i18n.systemCheck,
+        direction: "column",
+        description: this.i18n.systemCheckDescription,
+        createActionElement: () => {
+          const passedElement = HTMLToElement(`<div class="fn__flex fn__flex-center fn__size200"><div class="fn__flex-1"></div><div>${this.i18n.systemCheckPassed}</div></div>`);
+          if (!(compare(Constants.SIYUAN_VERSION, '3.5.4', '>=') && !window.siyuan.config.editor.allowSVGScript)) {
+            return passedElement;
+          }
+
+          const failedElement = HTMLToElement(`<button class="b3-button b3-button--error">${this.i18n.systemCheckFailed}</button>`);
+          failedElement.addEventListener("click", () => {
+            window.siyuan.config.editor.allowSVGScript = true;
+            fetchPost("/api/setting/setEditor", window.siyuan.config.editor, (response) => {
+              if (response.code === 0) {
+                failedElement.replaceWith(passedElement);
+              }
+            });
+          });
+          return failedElement;
+        },
+      },
+      {
         title: this.i18n.labelDisplay,
         direction: "column",
         description: this.i18n.labelDisplayDescription,
@@ -528,7 +552,16 @@ export default class DrawioPlugin extends Plugin {
           });
           return element;
         },
-      }
+      },
+      {
+        title: this.i18n.feedbackIssue,
+        direction: "column",
+        description: this.i18n.feedbackIssueDescription,
+        createActionElement: () => {
+          const repoLink = "https://github.com/YuxinZhaozyx/siyuan-embed-drawio/issues";
+          return HTMLToElement(`<a href="${repoLink}" target="_blank" rel="noopener noreferrer" class="b3-button b3-button--outline fn__flex-center fn__size200 ariaLabel" aria-label="${repoLink}" data-position="north"><svg><use xlink:href="#iconGithub"></use></svg>${this.i18n.feedbackIssueButton}</a>`);
+        }
+      },
     ];
   }
 

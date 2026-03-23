@@ -21,5 +21,12 @@
   "AIProviderInterfaceType": "Interface Type",
   "AIProviderInterface": "Interface",
   "AIProviderModels": "Models",
-  "addAIProvider": "Add Provider"
+  "addAIProvider": "Add Provider",
+  "feedbackIssue": "Feedback issues",
+  "feedbackIssueDescription": "Open plugin's repository page, welcome to click Star to support the author",
+  "feedbackIssueButton": "Open GitHub",
+  "systemCheck": "Check Available",
+  "systemCheckDescription": "Check SiYuan configuration to ensure plugin available<br>Check Items:<br>1. enable \"Settings > Editor > Allow execution of scripts inside SVG\"",
+  "systemCheckPassed": "Passed",
+  "systemCheckFailed": "Failed, Click to Fix"
 }

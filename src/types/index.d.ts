@@ -129,6 +129,7 @@ interface Window {
       };
       lang: string;
       keymap: any;
+      editor: any;
     }
   };
   _sy_plugin_sample: {
