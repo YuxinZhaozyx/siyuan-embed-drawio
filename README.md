@@ -18,9 +18,8 @@
 
 > **Notice!!!**
 >
-> 1. For improved document loading speed, this plugin only recognizes images starting with `drawio-` as valid draw.io images. If you encounter issues with your existing draw.io images not displaying the edit button, please rename your images to start with `drawio-`.
->
-> 2. SiYuan 3.5.4 and above requires the `Settings > Editor > Allow execution of scripts inside SVG` option to be enabled to avoid SVG display errors.
+> For improved document loading speed, this plugin only recognizes images starting with `drawio-` as valid draw.io images. If you encounter issues with your existing draw.io images not displaying the edit button, please rename your images to start with `drawio-`.
+
 
 ## Embed Series
 
@@ -88,6 +87,9 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.7.3
+    + Update: update draw.io to v29.6.10
+    + Optimize: Remove availability check, start the plugin to automatically check and fix
 + v0.7.2
     + Update: update draw.io to v29.6.4
     + Feature: feedback in configuration & check available

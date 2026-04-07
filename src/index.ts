@@ -67,6 +67,7 @@ export default class DrawioPlugin extends Plugin {
   async onload() {
     this.initMetaInfo();
     this.initSetting();
+    this.systemCheckAndFix();
 
     this._mutationObserver = this.setAddImageBlockMuatationObserver(document.body, (blockElement: HTMLElement) => {
       const imageElement = blockElement.querySelector("img") as HTMLImageElement;
@@ -390,28 +391,6 @@ export default class DrawioPlugin extends Plugin {
     if (typeof this.data[STORAGE_NAME].AISettings === 'undefined') this.data[STORAGE_NAME].AISettings = this.getDefaultAISettings();
 
     this.settingItems = [
-      {
-        title: this.i18n.systemCheck,
-        direction: "column",
-        description: this.i18n.systemCheckDescription,
-        createActionElement: () => {
-          const passedElement = HTMLToElement(`<div class="fn__flex fn__flex-center fn__size200"><div class="fn__flex-1"></div><div>${this.i18n.systemCheckPassed}</div></div>`);
-          if (!(compare(Constants.SIYUAN_VERSION, '3.5.4', '>=') && !window.siyuan.config.editor.allowSVGScript)) {
-            return passedElement;
-          }
-
-          const failedElement = HTMLToElement(`<button class="b3-button b3-button--error">${this.i18n.systemCheckFailed}</button>`);
-          failedElement.addEventListener("click", () => {
-            window.siyuan.config.editor.allowSVGScript = true;
-            fetchPost("/api/setting/setEditor", window.siyuan.config.editor, (response) => {
-              if (response.code === 0) {
-                failedElement.replaceWith(passedElement);
-              }
-            });
-          });
-          return failedElement;
-        },
-      },
       {
         title: this.i18n.labelDisplay,
         direction: "column",
@@ -1236,5 +1215,12 @@ export default class DrawioPlugin extends Plugin {
       }
     }
     return imageDataURL;
+  }
+
+  public systemCheckAndFix() {
+    if (compare(Constants.SIYUAN_VERSION, '3.5.4', '>=') && !window.siyuan.config.editor.allowSVGScript) {
+      window.siyuan.config.editor.allowSVGScript = true;
+      fetchPost("/api/setting/setEditor", window.siyuan.config.editor);
+    }
   }
 }

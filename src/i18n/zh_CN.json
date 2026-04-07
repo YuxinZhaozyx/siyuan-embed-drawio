@@ -24,9 +24,5 @@
   "addAIProvider": "添加提供商",
   "feedbackIssue": "反馈问题",
   "feedbackIssueDescription": "打开插件的仓库页面，欢迎点击 Star 支持作者<br>反馈QQ群：1037356690",
-  "feedbackIssueButton": "打开 GitHub",
-  "systemCheck": "可用性检查",
-  "systemCheckDescription": "检查思源设置以确保插件可用<br>检查项：<br>1. 设置 > 编辑器 > 允许执行SVG脚本 需开启",
-  "systemCheckPassed": "检查通过",
-  "systemCheckFailed": "检查未通过，一键修复"
+  "feedbackIssueButton": "打开 GitHub"
 }
