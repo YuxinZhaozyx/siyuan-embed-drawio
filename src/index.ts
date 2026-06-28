@@ -786,7 +786,7 @@ export default class DrawioPlugin extends Plugin {
         const iframeID = unicodeToBase64(`drawio-edit-tab-${imageInfo.imageURL}`);
         const editTabHTML = `
 <div class="drawio-edit-tab">
-    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+    <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${that.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${that.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split(/[-_]/)[0]}&iframeID=${iframeID}"></iframe>
 </div>`;
         this.element.innerHTML = editTabHTML;
 
@@ -917,7 +917,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&iframeID=${iframeID}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&noSaveBtn=1&saveAndExit=0&configure=1&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split(/[-_]/)[0]}&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>
@@ -1100,7 +1100,7 @@ export default class DrawioPlugin extends Plugin {
     <div class="edit-dialog-header resize__move"></div>
     <div class="edit-dialog-container">
         <div class="edit-dialog-editor">
-            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split('_')[0]}&lightbox=1&iframeID=${iframeID}"></iframe>
+            <iframe src="/plugins/siyuan-embed-drawio/draw/index.html?proto=json${this.isDarkMode() ? "&dark=1" : ""}&embed=1${this.isMobile ? "&ui=min" : ""}&lang=${window.siyuan.config.lang.split(/[-_]/)[0]}&lightbox=1&iframeID=${iframeID}"></iframe>
         </div>
         <div class="fn__hr--b"></div>
     </div>

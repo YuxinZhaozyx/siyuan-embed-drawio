@@ -87,6 +87,9 @@ The label of a draw.io image block can be configured in the plugin settings.
 
 ## Changelog
 
++ v0.7.4
+    + Update: update draw.io to v30.2.6
+    + Fix: Siyuan 3.7 compatibility for language
 + v0.7.3
     + Update: update draw.io to v29.6.10
     + Optimize: Remove availability check, start the plugin to automatically check and fix
